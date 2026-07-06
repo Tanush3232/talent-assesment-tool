@@ -1,0 +1,3501 @@
+import React, { useState, useMemo } from 'react';
+import { 
+  ChevronRight, 
+  ChevronLeft, 
+  Eye, 
+  LogOut, 
+  Users, 
+  Search, 
+  Filter, 
+  Lock, 
+  Unlock, 
+  CheckCircle2, 
+  FileSpreadsheet, 
+  Activity, 
+  AlertTriangle, 
+  Briefcase, 
+  MapPin, 
+  Clock, 
+  BookOpen, 
+  ArrowRight,
+  Shield,
+  Plus,
+  Upload,
+  Download,
+  Edit2,
+  Trash2,
+  Save,
+  X,
+  FileText
+} from 'lucide-react';
+
+const SUB_DIMENSIONS = {
+  ability: [
+    {
+      id: '1.1',
+      title: 'Agility',
+      description: 'Quickly grasps new concepts, applies them to unfamiliar situations and adapts quickly in rapidly changing and ambiguous situations.'
+    },
+    {
+      id: '1.2',
+      title: 'Digital Mindset',
+      description: 'Proactively leverages technology tools, AI, or data analytics to enhance productivity and to improve business processes.'
+    },
+    {
+      id: '1.3',
+      title: 'Strategic Thinking',
+      description: 'Looks beyond day-to-day tasks to understand broader business impacts and solve complex or systemic problems.'
+    },
+    {
+      id: '1.4',
+      title: 'Emotional Intelligence',
+      description: 'Demonstrates deep self-awareness, manages stress effectively, and navigates interpersonal dynamics with empathy.'
+    }
+  ],
+  aspiration: [
+    {
+      id: '2.1',
+      title: 'Drive for Growth',
+      description: 'Actively seeks stretch assignments, extra responsibilities, and constructive feedback to accelerate development.'
+    },
+    {
+      id: '2.2',
+      title: 'Ambition with Flexibility',
+      description: 'Expresses a clear desire to advance into leadership or high-influence roles and the willingness to make the necessary investment (e.g. relocation, job rotation etc., if required)'
+    },
+    {
+      id: '2.3',
+      title: 'Resilience & Grit',
+      description: 'Maintains high motivation and energy when facing significant obstacles, setbacks, or high-pressure organizational shifts.'
+    },
+    {
+      id: '2.4',
+      title: 'Organizational Alignment',
+      description: 'Career goals align with the future direction of the company; shows long-term commitment to growing with the organization.'
+    }
+  ],
+  leadership: [
+    {
+      id: '3.1',
+      title: 'Discretionary Effort',
+      description: 'Consistently brings energy to the team and goes beyond the baseline job description to champion new initiatives.'
+    },
+    {
+      id: '3.2',
+      title: 'Leading Without Authority',
+      description: 'Successfully influences, coaches, and persuades peers, stakeholders, or cross-functional teams without formal power.'
+    },
+    {
+      id: '3.3',
+      title: 'Organizational Advocacy',
+      description: 'Role models the Core Values and acts as a representative of the company’s vision, direction & brand, actively building trust and alignment.'
+    },
+    {
+      id: '3.4',
+      title: 'Talent Developer',
+      description: 'Supports the growth of others, shares knowledge generously, and is someone others want to work with.'
+    }
+  ]
+};
+
+const DEPARTMENT_TO_FUNCTION = {
+  'Engineering & R&D': 'Technology',
+  'Design Studio': 'Technology',
+  'Product Management': 'Product',
+  'Sales & Commercial': 'Commercial',
+  'Business Enablement': 'Operations'
+};
+
+const INITIAL_EMPLOYEES = [
+  {
+    id: 'EMP001',
+    name: 'Rahul Iyer',
+    email: 'rahul.iyer@zuari.com',
+    role: 'Lead Architect - Core Banking',
+    impactLevel: 'High',
+    entity: 'Zuari Industries Ltd',
+    department: 'Engineering & R&D',
+    location: 'Bengaluru Outer Ring Road CoE',
+    managerId: 'MGR001',
+    managerEmail: 'sandeep.sharma@zuari.com',
+    status: 'Draft',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&fit=crop&q=80',
+    scores: {
+      ability: { '1.1': 3, '1.2': 4, '1.3': 2, '1.4': 3 },
+      aspiration: { '2.1': 4, '2.2': 3, '2.3': 3, '2.4': 4 },
+      leadership: { '3.1': 3, '3.2': 2, '3.3': 3, '3.4': 2 }
+    },
+    evidence: {
+      '1.1': 'Rapidly adapted to the newly deployed microservices infrastructure during the APAC migration. Displayed high technical command and coordinated resource transitions cleanly.',
+      '1.2': 'Developed inline generative templates for his engineering team, reducing build cycle delays by 14% and saving significant delivery overhead.',
+      '1.3': 'Still focused highly on local module architectures; needs exposure to broader enterprise business objectives and macro scaling paths to advance further.',
+      '1.4': 'Handles high-pressure release environments professionally. Maintains sound rapport with external stakeholders across regional APAC domains and corporate hubs.',
+      '2.1': 'Actively requested to spearhead the hybrid-cloud transition roadmap, showing high drive for expanded portfolio ownership parameters and core framework updates.',
+      '2.2': 'Eager for leadership responsibilities, although currently reluctant to relocate outside Bengaluru due to family dependencies. Excels in technical focus.',
+      '2.3': 'Remained focused and composed when the primary staging build failed three times consecutive to execution, stabilizing teams fast and correcting system bugs.',
+      '2.4': 'Long-term intent is solid. High alignment with corporate vision for technological modernization and digital-first delivery formats across Indian business units.',
+      '3.1': 'Regularly stays beyond operational shifts to mentor fresh graduate hires and lead technical cross-training bootcamps locally in the Bangalore CoE.',
+      '3.2': 'Struggles to influence senior product owners occasionally when technical debt is contested. Needs to refine business narrative pitches to drive executive alignment.',
+      '3.3': 'Actively demonstrates Integrity and Innovation, core values of the corporate brand, representing engineering groups on panel calls across corporate circles.',
+      '3.4': 'Helped two junior resources progress to independent module ownership states, demonstrating genuine skill-building sponsorship goals and mentorship.'
+    },
+    managerComments: 'Rahul is highly skilled in architecture but requires structured guidance to develop strategic business vision and enterprise influence over the next fiscal year.'
+  },
+  {
+    id: 'EMP002',
+    name: 'Priya Patel',
+    role: 'Senior Product Manager - Payment Gateway',
+    email: 'priya.patel@zuari.com',
+    impactLevel: 'Critical',
+    entity: 'Zuari Industries Ltd',
+    department: 'Product Management',
+    location: 'Bengaluru Outer Ring Road CoE',
+    managerId: 'MGR001',
+    managerEmail: 'sandeep.sharma@zuari.com',
+    status: 'Completed',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&fit=crop&q=80',
+    scores: {
+      ability: { '1.1': 4, '1.2': 4, '1.3': 4, '1.4': 3 },
+      aspiration: { '2.1': 4, '2.2': 4, '2.3': 4, '2.4': 4 },
+      leadership: { '3.1': 4, '3.2': 4, '3.3': 4, '3.4': 4 }
+    },
+    evidence: {
+      '1.1': 'Seamlessly managed sudden API regulation changes set by RBI, modifying product frameworks in record time without service disruption. Demonstrated massive domain resilience.',
+      '1.2': 'Implemented automated telemetry dashboards that track real-time end-to-end user friction vectors and churn rates on payments. Highly digital mindset applied.',
+      '1.3': 'Drafted the complete 3-year strategic growth deck for the digital payments vertical, securing crucial executive sponsorships from regional leaders.',
+      '1.4': 'Facilitates collaboration between highly technical architects and business-heavy commercial squads seamlessly under complex regulatory friction bounds.',
+      '2.1': 'Constantly pursues additional responsibilities; volunteered to head the newly formed regulatory compliance task force regionally in our South Asia unit.',
+      '2.2': 'Open to global rotations, specifically expressed willingness to relocate to Mumbai or London hubs if strategic business roles require. Highly ambitious.',
+      '2.3': 'Remained resilient during critical merchant churn phases, reversing client exit within a quarter via dynamic solutions and custom API configurations.',
+      '2.4': 'Perfectly aligned; values career trajectory inside the growth narrative and demonstrates long-term commitment parameters and brand loyalty.',
+      '3.1': 'Consistently sets performance benchmarks and champions operational efficiency drives across APAC commercial circles and developer boards.',
+      '3.2': 'Highly influential across engineering, sales, and operations squads; leads through exceptional platform expertise and trust build metrics.',
+      '3.3': 'An active corporate ambassador who mentors extensively under the internal professional network and diversity cohorts in India.',
+      '3.4': 'Has trained and developed two transition successors ready to inherit active product ownership without operational hiccups or execution delays.'
+    },
+    managerComments: 'A stellar high-potential individual. Ready for an immediate vertical promotion to Director of Product Planning within the South Asia region.'
+  },
+  {
+    id: 'EMP003',
+    name: 'Arjun Mehta',
+    role: 'Senior Software Engineer',
+    email: 'arjun.mehta@zuari.com',
+    impactLevel: 'Medium',
+    entity: 'Adventz Corporate CoE',
+    department: 'Engineering & R&D',
+    location: 'Hyderabad HITEC City',
+    managerId: 'MGR001',
+    managerEmail: 'sandeep.sharma@zuari.com',
+    status: 'Pending',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&fit=crop&q=80',
+    scores: { ability: {}, aspiration: {}, leadership: {} },
+    evidence: {},
+    managerComments: ''
+  },
+  {
+    id: 'EMP005',
+    name: 'Vikram Rao',
+    role: 'Enterprise Account Director',
+    email: 'vikram.rao@zuari.com',
+    impactLevel: 'High',
+    entity: 'Adventz Commercial',
+    department: 'Sales & Commercial',
+    location: 'Mumbai Bandra Kurla Complex (BKC)',
+    managerId: 'MGR002',
+    managerEmail: 'divya.nair@zuari.com',
+    status: 'Completed',
+    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&fit=crop&q=80',
+    scores: {
+      ability: { '1.1': 3, '1.2': 3, '1.3': 3, '1.4': 4 },
+      aspiration: { '2.1': 3, '2.2': 4, '2.3': 3, '2.4': 3 },
+      leadership: { '3.1': 4, '3.2': 3, '3.3': 3, '3.4': 3 }
+    },
+    evidence: {
+      '1.1': 'Successfully adjusted key client pitch metrics during global microeconomic market corrections, retaining high portfolio ratios and key accounts.',
+      '1.2': 'Transitioned the entire regional sales forecasting process to modernized CRM pipeline utilities, eliminating manual spreadsheet delays.',
+      '1.3': 'Develops viable cross-selling strategies but needs minor structural refining at corporate account level for full strategic fit across regions.',
+      '1.4': 'Exceptional empathy and client handling capacity; acts as a highly respected trust partner for critical regional buyers and enterprise contacts.',
+      '2.1': 'Consistently seeks growth opportunities and higher regional portfolios, showing readiness for multi-account oversight and territory planning.',
+      '2.2': 'Highly dynamic; expressed complete alignment with moving between regional metropolitan clusters and commercial offices as required by corporate.',
+      '2.3': 'Maintains steady performance under tight quarterly timelines without signs of burnout, balancing massive deal flow structures cleanly.',
+      '2.4': 'Is strongly motivated by corporate recognition models and executive-level mentorship opportunities available inside the firm.',
+      '3.1': 'Constantly takes lead in local sales summits; injects notable team morale and drives local sales target focus across commercial teams.',
+      '3.2': 'Guides cross-functional marketing and solutions architects to design unified corporate bid pitches under tight customer turnarounds.',
+      '3.3': 'Displays and advocates customer-centric focus consistently, protecting company reputation during highly intense regional negotiations.',
+      '3.4': 'Frequently coaches junior relationship managers on complex negotiation tactics and long-term client retention strategies in West India.'
+    },
+    managerComments: 'Solid, dependable leader. Currently fully ready to handle larger West India account territories and drive complex digital campaigns.'
+  },
+  {
+    id: 'EMP006',
+    name: 'Kriti Sharma',
+    role: 'Operations Program Lead',
+    email: 'kriti.sharma@zuari.com',
+    impactLevel: 'Medium',
+    entity: 'Zuari Industries Ltd',
+    department: 'Business Enablement',
+    location: 'Pune Hinjawadi Tech Park',
+    managerId: 'MGR002',
+    managerEmail: 'divya.nair@zuari.com',
+    status: 'Draft',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&fit=crop&q=80',
+    scores: {
+      ability: { '1.1': 3, '1.2': 2, '1.3': 3, '1.4': 3 },
+      aspiration: { '2.1': 3, '2.2': 2, '2.3': 2, '2.4': 3 },
+      leadership: { '3.1': 2, '3.2': 3, '3.3': 3, '3.4': 2 }
+    },
+    evidence: {
+      '1.1': 'Successfully reorganized the Pune campus transport workflows post global realignments, streamlining transit routes and regional layouts.',
+      '1.2': 'Relies mostly on manual spreadsheet audits; requires upskilling in visual automation suites and centralized dashboards to scale productivity.',
+      '1.3': 'Analyzes core workflows systematically, spotting key layout redundancies and reporting them to process champions for rectification.',
+      '1.4': 'Communicates changes clearly and handles team resistance respectfully, maintaining a positive and supportive workplace environment.',
+      '2.1': 'Focuses primarily on immediate scope; exhibits minor reservation towards handling stretch assignments and new operational programs.',
+      '2.2': 'Values stability in current role; explicitly mentioned relocation challenges in the current operational fiscal horizon due to family.',
+      '2.3': 'Tends to get stressed during intense high-pressure transition phases; requires proactive mentorship and guidance during project shifts.',
+      '2.4': 'Expresses long-term loyalty to our company, valuing corporate culture immensely and intending to grow inside current domain paths.',
+      '3.1': 'Executes tasks reliably, though rarely launches self-guided initiatives without managerial prompt parameters or direct assignments.',
+      '3.2': 'Drives positive collaboration with administrative and security partners to deliver unified on-site operations daily in Pune.',
+      '3.3': 'Maintains sound professional conduct representing core corporate identity and standard operating procedures to vendor networks.',
+      '3.4': 'Openly shares standard operating manuals but doesn\'t actively lead cross-functional development programs or talent paths yet.'
+    },
+    managerComments: 'Kriti is well-placed and highly reliable in running standard operations, but is not currently exhibiting immediate aspiration for higher-level leadership roles.'
+  },
+  {
+    id: 'EMP009',
+    name: 'Sneha Reddy',
+    role: 'Lead Business Analyst',
+    email: 'sneha.reddy@zuari.com',
+    impactLevel: 'High',
+    entity: 'Zuari Industries Ltd',
+    department: 'Product Management',
+    location: 'Bengaluru Outer Ring Road CoE',
+    managerId: 'MGR001',
+    managerEmail: 'sandeep.sharma@zuari.com',
+    status: 'Completed',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&fit=crop&q=80',
+    scores: {
+      ability: { '1.1': 3, '1.2': 3, '1.3': 3, '1.4': 3 },
+      aspiration: { '2.1': 3, '2.2': 3, '2.3': 3, '2.4': 3 },
+      leadership: { '3.1': 2, '3.2': 3, '3.3': 3, '3.4': 3 }
+    },
+    evidence: {
+      '1.1': 'Exhibits balanced cognitive performance when translating text templates. Adapts within standard delivery boundaries.',
+      '1.2': 'Efficiently configures basic visualization tools and automated metrics pipelines without requiring external architect oversight.',
+      '1.3': 'Offers solid insights during quarterly feature reviews but requires occasional leadership direction to structure multi-regional project goals.',
+      '1.4': 'Maintains composed, stable relationships with internal product owners and engineers. Works effectively under busy sprint timelines.',
+      '2.1': 'Consistently requests stretch metrics tasks. Expresses a clear desire to grow into regional management pathways over the coming fiscal cycle.',
+      '2.2': 'Highly cooperative and open to shifting between regional offices or taking on short-term corporate projects outside her home region.',
+      '2.3': 'Maintains sound delivery focus during sudden software release hotfixes, preventing resource bottlenecks across active teams.',
+      '2.4': 'Vocal advocate of our vision for digital modernization. Consistently aligns local delivery deliverables with corporate expectations.',
+      '3.1': 'Executes core roadmap definitions reliably. Rarely leads self-guided initiatives but supports active workgroups productively.',
+      '3.2': 'Handles moderate stakeholder discussions successfully and influences core prioritization boards through reliable domain data metrics.',
+      '3.3': 'Role models basic standard parameters for cross-team coordination, actively encouraging technical collaboration internally.',
+      '3.4': 'Provides clear guidance to fresh graduate recruits during onboarding sequences, supporting stable team integration metrics.'
+    },
+    managerComments: 'Sneha is a stable, highly consistent contributor. Well-positioned for progression to a Senior Manager level role with targeted leadership training.'
+  },
+  {
+    id: 'EMP011',
+    name: 'Dr. Aditi Sen',
+    role: 'Lead Data Scientist',
+    email: 'aditi.sen@zuari.com',
+    impactLevel: 'Critical',
+    entity: 'Zuari Industries Ltd',
+    department: 'Engineering & R&D',
+    location: 'Bengaluru Outer Ring Road CoE',
+    managerId: 'MGR001',
+    managerEmail: 'sandeep.sharma@zuari.com',
+    status: 'Completed',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&fit=crop&q=80',
+    scores: {
+      ability: { '1.1': 2, '1.2': 4, '1.3': 4, '1.4': 2 },
+      aspiration: { '2.1': 4, '2.2': 4, '2.3': 4, '2.4': 4 },
+      leadership: { '3.1': 2, '3.2': 2, '3.3': 4, '3.4': 4 }
+    },
+    evidence: {
+      '1.1': 'Struggles with rapid pivots in technical scope; requires detailed analytical roadmaps when business priorities change suddenly.',
+      '1.2': 'Pioneered several generative algorithms and automated data modeling flows, creating massive analytical efficiencies across departments.',
+      '1.3': 'Demonstrates deep strategic logic; mapped the full 5-year data architecture framework for the entire regional platform.',
+      '1.4': 'Struggles with interpersonal dynamics under high pressure, occasionally creating team friction during complex machine learning deployments.',
+      '2.1': 'Actively seeks challenging, highly complex research parameters and volunteers to head advanced diagnostic prototype projects.',
+      '2.2': 'Extremely flexible; expressed strong interest in short-term global assignments or relocations to drive advanced analytical projects.',
+      '2.3': 'Displays high grit during complex algorithms failure, spending extra hours debugging and resolving deep logical bottlenecks.',
+      '2.4': 'Highly aligned with our vision for technological leadership; works tirelessly to position the firm as a pioneer in data modeling.',
+      '3.1': 'Focuses deeply on technical research parameters; rarely volunteers to drive non-technical corporate taskforces or event series.',
+      '3.2': 'Struggles to influence non-technical stakeholders when explaining complex mathematical model assumptions, creating alignment delays.',
+      '3.3': 'Acts as a strong technical ambassador, presenting research papers at industry conferences and building valuable brand recognition.',
+      '3.4': 'Nurtures junior data scientists brilliantly, hosting regular knowledge shares and building a strong local learning culture.'
+    },
+    managerComments: 'Aditi possesses exceptional technical and strategic strength. However, due to scores below 3 on three critical behavioral indicators (Agility, EI, and Leading Without Authority), she is excluded from HiPo status and must focus on leadership development.'
+  }
+];
+
+const USERS = {
+  'ADM001': {
+    id: 'ADM001',
+    name: 'Ananya Sen',
+    role: 'Super Admin - System Administrator',
+    department: 'Corporate HR Operations',
+    location: 'Corporate HQ (Mumbai)',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&fit=crop&q=80',
+    type: 'admin'
+  },
+  'MGR001': {
+    id: 'MGR001',
+    name: 'Sandeep Sharma',
+    role: 'Senior Engineering Director',
+    department: 'Engineering & R&D',
+    location: 'Bengaluru Outer Ring Road CoE',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&fit=crop&q=80',
+    type: 'manager'
+  },
+  'MGR002': {
+    id: 'MGR002',
+    name: 'Divya Nair',
+    role: 'VP - Commercial & Sales Operations',
+    department: 'Sales & Commercial',
+    location: 'Mumbai Bandra Kurla Complex (BKC)',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&fit=crop&q=80',
+    type: 'manager'
+  },
+  'HR001': {
+    id: 'HR001',
+    name: 'Ananya Sen',
+    role: 'Head of Succession Planning',
+    department: 'Corporate HR CoE',
+    location: 'Corporate HQ (Mumbai)',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&fit=crop&q=80',
+    type: 'hr'
+  }
+};
+
+export default function App() {
+  // 1. Core State Definitions
+  const [currentUser, setCurrentUser] = useState(null);
+  const [selectedLoginProfile, setSelectedLoginProfile] = useState(null); 
+  const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
+  const [currentTab, setCurrentTab] = useState('team'); 
+  
+  const [statusFilter, setStatusFilter] = useState('ALL'); 
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const [functionFilter, setFunctionFilter] = useState('ALL');
+  const [departmentFilter, setDepartmentFilter] = useState('ALL');
+  const [managerFilter, setManagerFilter] = useState('ALL'); 
+
+  const [directorySubTab, setDirectorySubTab] = useState('function');
+  
+  const [reportsManagerFilter, setReportsManagerFilter] = useState('ALL');
+  const [reportsCategoryFilter, setReportsCategoryFilter] = useState('ALL');
+
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [activeFormStep, setActiveFormStep] = useState(0); 
+  const [tempScores, setTempScores] = useState({ ability: {}, aspiration: {}, leadership: {} });
+  const [tempEvidence, setTempEvidence] = useState({});
+  const [tempComments, setTempComments] = useState('');
+
+  const [toast, setToast] = useState(null);
+  const [isLowScoreModalOpen, setIsLowScoreModalOpen] = useState(false);
+  const [isGuidelinesModalOpen, setIsGuidelinesModalOpen] = useState(false);
+
+  // Admin Specific UI states
+  const [isAdminCreateOpen, setIsAdminCreateOpen] = useState(false);
+  const [isAdminBulkOpen, setIsAdminBulkOpen] = useState(false);
+  const [adminBulkText, setAdminBulkText] = useState('');
+  const [adminSelectedEmp, setAdminSelectedEmployee] = useState(null);
+
+  // Admin Form state values (Impact Level initialized to 'Medium' but open-ended text input)
+  const [adminForm, setAdminForm] = useState({
+    id: '', name: '', email: '', role: '', impactLevel: 'Medium',
+    entity: 'Zuari Industries Ltd', department: 'Engineering & R&D',
+    location: 'Bengaluru Outer Ring Road CoE', managerId: 'MGR001',
+    managerEmail: 'sandeep.sharma@zuari.com'
+  });
+
+  // 2. Pure Helper Functions
+  const calculateSectionScore = (section, scoresObj = tempScores) => {
+    const indicators = section === 'ability' ? ['1.1', '1.2', '1.3', '1.4'] :
+                       section === 'aspiration' ? ['2.1', '2.2', '2.3', '2.4'] :
+                       ['3.1', '3.2', '3.3', '3.4'];
+    
+    let total = 0;
+    let counted = 0;
+    indicators.forEach(id => {
+      const val = scoresObj[section] && scoresObj[section][id];
+      if (val !== undefined && val !== null && val !== '') {
+        total += Number(val);
+        counted++;
+      }
+    });
+    return { sum: total, counted, totalInSchema: indicators.length };
+  };
+
+  const getTalentClassification = (totalScore, lowScoresCount) => {
+    if (totalScore === 0) return { category: 'Pending Rating', description: 'Complete evaluation indicators to compute classification.' };
+    
+    if (lowScoresCount > 2) {
+      if (totalScore >= 37) {
+        return {
+          category: 'Promotable/Expandable',
+          description: 'Excluded from High Potential (HiPo) status due to scoring below 3 on more than 2 sub-dimensions. Strong performance aggregate, but requires targeted development on specific behavior blocks.',
+          forcedExclusion: true
+        };
+      }
+    }
+
+    if (totalScore >= 37) {
+      return {
+        category: 'High Potential (HiPo)',
+        description: 'Has the potential to move 1-2 levels up. Excels across all three pillars. Can be considered for promotion immediately, if other promotion criteria are met. Should receive broad organizational exposure, executive mentorship, and rapid development paths.'
+      };
+    } else if (totalScore >= 24) {
+      return {
+        category: 'Promotable/Expandable',
+        description: 'Has the potential to move 1 level up with targeted development. Can be considered for larger roles at the same responsibility level immediately. Should receive coaching/mentoring to address the specific gaps on aspects of ability, aspiration or leadership.'
+      };
+    } else {
+      return {
+        category: 'Well-placed',
+        description: 'Not yet ready for larger roles. Consider job enrichment, deep specialization, and retention if the performance is good.'
+      };
+    }
+  };
+
+  const isFormReadOnly = selectedEmployee ? (selectedEmployee.status === 'Completed' || currentUser?.type === 'hr') : false;
+
+  const triggerToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  // 3. Memoized Aggregations
+  const availableManagers = useMemo(() => {
+    const ids = [...new Set(employees.map(emp => emp.managerId))];
+    return ids.map(id => USERS[id] || { id, name: id }).filter(Boolean);
+  }, [employees]);
+
+  const functionSummaries = useMemo(() => {
+    const summaries = {
+      'Technology': { name: 'Technology', total: 0, completed: 0, hipos: 0 },
+      'Product': { name: 'Product', total: 0, completed: 0, hipos: 0 },
+      'Commercial': { name: 'Commercial', total: 0, completed: 0, hipos: 0 },
+      'Operations': { name: 'Operations', total: 0, completed: 0, hipos: 0 }
+    };
+
+    employees.forEach(emp => {
+      const func = DEPARTMENT_TO_FUNCTION[emp.department] || 'Operations';
+      summaries[func].total += 1;
+      if (emp.status === 'Completed') {
+        summaries[func].completed += 1;
+        const ab = calculateSectionScore('ability', emp.scores);
+        const asp = calculateSectionScore('aspiration', emp.scores);
+        const lead = calculateSectionScore('leadership', emp.scores);
+        const grandTotal = ab.sum + asp.sum + lead.sum;
+
+        let lowCount = 0;
+        const allScoresFlat = { ...emp.scores.ability, ...emp.scores.aspiration, ...emp.scores.leadership };
+        Object.values(allScoresFlat).forEach(val => {
+          if (val !== undefined && val !== null && Number(val) < 3) {
+            lowCount++;
+          }
+        });
+        const classification = getTalentClassification(grandTotal, lowCount);
+        if (classification.category === 'High Potential (HiPo)' && !classification.forcedExclusion) {
+          summaries[func].hipos += 1;
+        }
+      }
+    });
+    return Object.values(summaries);
+  }, [employees]);
+
+  const departmentSummaries = useMemo(() => {
+    const summaries = {};
+    const depts = [...new Set(employees.map(emp => emp.department))];
+    depts.forEach(d => {
+      summaries[d] = { name: d, parent: DEPARTMENT_TO_FUNCTION[d] || 'Operations', total: 0, completed: 0, hipos: 0 };
+    });
+
+    employees.forEach(emp => {
+      const dept = emp.department;
+      summaries[dept].total += 1;
+      if (emp.status === 'Completed') {
+        summaries[dept].completed += 1;
+        const ab = calculateSectionScore('ability', emp.scores);
+        const asp = calculateSectionScore('aspiration', emp.scores);
+        const lead = calculateSectionScore('leadership', emp.scores);
+        const grandTotal = ab.sum + asp.sum + lead.sum;
+
+        let lowCount = 0;
+        const allScoresFlat = { ...emp.scores.ability, ...emp.scores.aspiration, ...emp.scores.leadership };
+        Object.values(allScoresFlat).forEach(val => {
+          if (val !== undefined && val !== null && Number(val) < 3) {
+            lowCount++;
+          }
+        });
+        const classification = getTalentClassification(grandTotal, lowCount);
+        if (classification.category === 'High Potential (HiPo)' && !classification.forcedExclusion) {
+          summaries[dept].hipos += 1;
+        }
+      }
+    });
+    return Object.values(summaries);
+  }, [employees]);
+
+  const managerSummaries = useMemo(() => {
+    const summaries = {};
+    Object.values(USERS).forEach(user => {
+      if (user.type === 'manager') {
+        summaries[user.id] = {
+          id: user.id,
+          name: user.name,
+          department: user.department,
+          total: 0,
+          pending: 0,
+          draft: 0,
+          completed: 0
+        };
+      }
+    });
+
+    employees.forEach(emp => {
+      if (!summaries[emp.managerId]) {
+        summaries[emp.managerId] = {
+          id: emp.managerId,
+          name: USERS[emp.managerId]?.name || emp.managerId,
+          department: emp.department,
+          total: 0,
+          pending: 0,
+          draft: 0,
+          completed: 0
+        };
+      }
+      summaries[emp.managerId].total += 1;
+      if (emp.status === 'Pending') summaries[emp.managerId].pending += 1;
+      if (emp.status === 'Draft') summaries[emp.managerId].draft += 1;
+      if (emp.status === 'Completed') summaries[emp.managerId].completed += 1;
+    });
+
+    return Object.values(summaries);
+  }, [employees]);
+
+  const kpis = useMemo(() => {
+    let list = employees;
+    if (currentUser && currentUser.type === 'manager') {
+      list = employees.filter(emp => emp.managerId === currentUser.id);
+    } else if (currentUser && currentUser.type === 'hr') {
+      if (functionFilter !== 'ALL') {
+        list = list.filter(emp => DEPARTMENT_TO_FUNCTION[emp.department] === functionFilter);
+      }
+      if (departmentFilter !== 'ALL') {
+        list = list.filter(emp => emp.department === departmentFilter);
+      }
+      if (managerFilter !== 'ALL') {
+        list = list.filter(emp => emp.managerId === managerFilter);
+      }
+    }
+    return {
+      total: list.length,
+      pending: list.filter(emp => emp.status === 'Pending').length,
+      drafts: list.filter(emp => emp.status === 'Draft').length,
+      completed: list.filter(emp => emp.status === 'Completed').length,
+    };
+  }, [employees, currentUser, functionFilter, departmentFilter, managerFilter]);
+
+  const reportDistributionCounts = useMemo(() => {
+    let list = employees;
+    if (reportsManagerFilter !== 'ALL') {
+      list = employees.filter(emp => emp.managerId === reportsManagerFilter);
+    }
+
+    let wellPlaced = 0;
+    let promotable = 0;
+    let hipo = 0;
+    let pending = 0;
+    let totalRatedCount = 0;
+
+    list.forEach(emp => {
+      if (emp.status === 'Pending') {
+        pending++;
+        return;
+      }
+      
+      const ab = calculateSectionScore('ability', emp.scores);
+      const asp = calculateSectionScore('aspiration', emp.scores);
+      const lead = calculateSectionScore('leadership', emp.scores);
+      const grandTotal = ab.sum + asp.sum + lead.sum;
+
+      let lowCount = 0;
+      const allScoresFlat = { ...emp.scores.ability, ...emp.scores.aspiration, ...emp.scores.leadership };
+      Object.values(allScoresFlat).forEach(val => {
+        if (val !== undefined && val !== null && Number(val) < 3) {
+          lowCount++;
+        }
+      });
+
+      const classification = getTalentClassification(grandTotal, lowCount);
+      totalRatedCount++;
+
+      if (classification.category === 'High Potential (HiPo)') {
+        hipo++;
+      } else if (classification.category === 'Promotable/Expandable') {
+        promotable++;
+      } else if (classification.category === 'Well-placed') {
+        wellPlaced++;
+      }
+    });
+
+    const hipoRatio = totalRatedCount > 0 ? ((hipo / totalRatedCount) * 100).toFixed(1) : '0.0';
+    const promotableRatio = totalRatedCount > 0 ? ((promotable / totalRatedCount) * 100).toFixed(1) : '0.0';
+
+    return {
+      wellPlaced,
+      promotable,
+      hipo,
+      pending,
+      total: list.length,
+      totalRatedCount,
+      hipoRatio,
+      promotableRatio
+    };
+  }, [employees, reportsManagerFilter]);
+
+  const summaryCalculations = useMemo(() => {
+    const ab = calculateSectionScore('ability');
+    const asp = calculateSectionScore('aspiration');
+    const lead = calculateSectionScore('leadership');
+    const grandTotal = ab.sum + asp.sum + lead.sum;
+
+    let lowScoresCount = 0;
+    const allScores = { ...tempScores.ability, ...tempScores.aspiration, ...tempScores.leadership };
+    Object.values(allScores).forEach(score => {
+      if (score !== undefined && score !== null && Number(score) < 3) {
+        lowScoresCount++;
+      }
+    });
+
+    const classification = getTalentClassification(grandTotal, lowScoresCount);
+
+    return {
+      abilitySum: ab.sum,
+      aspirationSum: asp.sum,
+      leadershipSum: lead.sum,
+      grandTotal,
+      lowScoresCount,
+      classification
+    };
+  }, [tempScores]);
+
+  const lowScoreRecordsList = useMemo(() => {
+    const list = [];
+    
+    SUB_DIMENSIONS.ability.forEach(item => {
+      const r = tempScores.ability?.[item.id];
+      if (r !== undefined && r !== null && Number(r) < 3) {
+        list.push({
+          section: 'Ability',
+          id: item.id,
+          title: item.title,
+          rating: Number(r),
+          evidence: tempEvidence[item.id] || 'No justification provided.'
+        });
+      }
+    });
+
+    SUB_DIMENSIONS.aspiration.forEach(item => {
+      const r = tempScores.aspiration?.[item.id];
+      if (r !== undefined && r !== null && Number(r) < 3) {
+        list.push({
+          section: 'Aspiration',
+          id: item.id,
+          title: item.title,
+          rating: Number(r),
+          evidence: tempEvidence[item.id] || 'No justification provided.'
+        });
+      }
+    });
+
+    SUB_DIMENSIONS.leadership.forEach(item => {
+      const r = tempScores.leadership?.[item.id];
+      if (r !== undefined && r !== null && Number(r) < 3) {
+        list.push({
+          section: 'Leadership',
+          id: item.id,
+          title: item.title,
+          rating: Number(r),
+          evidence: tempEvidence[item.id] || 'No justification provided.'
+        });
+      }
+    });
+
+    return list;
+  }, [tempScores, tempEvidence]);
+
+  const visibleEmployees = useMemo(() => {
+    let list = employees;
+    if (currentUser && currentUser.type === 'manager') {
+      list = employees.filter(emp => emp.managerId === currentUser.id);
+    } else if (currentUser && currentUser.type === 'hr') {
+      if (functionFilter !== 'ALL') {
+        list = list.filter(emp => DEPARTMENT_TO_FUNCTION[emp.department] === functionFilter);
+      }
+      if (departmentFilter !== 'ALL') {
+        list = list.filter(emp => emp.department === departmentFilter);
+      }
+      if (managerFilter !== 'ALL') {
+        list = list.filter(emp => emp.managerId === managerFilter);
+      }
+    }
+
+    if (searchTerm.trim() !== '') {
+      list = list.filter(emp => 
+        emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.location.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== 'ALL') {
+      list = list.filter(emp => emp.status === statusFilter);
+    }
+
+    return list;
+  }, [employees, currentUser, searchTerm, statusFilter, functionFilter, departmentFilter, managerFilter]);
+
+  const lineChartData = useMemo(() => {
+    const values = [
+      reportDistributionCounts.wellPlaced,
+      reportDistributionCounts.promotable,
+      reportDistributionCounts.hipo
+    ];
+
+    const maxVal = Math.max(...values, 1);
+    const chartHeight = 150;
+    const padding = 35;
+    
+    const x0 = 80;
+    const x1 = 250;
+    const x2 = 420;
+
+    const getY = (val) => chartHeight - padding - (val / maxVal) * (chartHeight - 2 * padding - 15) + 15;
+
+    const y0 = getY(values[0]);
+    const y1 = getY(values[1]);
+    const y2 = getY(values[2]);
+
+    const cpOffset = 65; 
+
+    const cp1x = x0 + cpOffset;
+    const cp1y = y0;
+    const cp2x = x1 - cpOffset;
+    const cp2y = y1;
+
+    const cp3x = x1 + cpOffset;
+    const cp3y = y1;
+    const cp4x = x2 - cpOffset;
+    const cp4y = y2;
+
+    const pathD = `M ${x0} ${y0} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x1} ${y1} C ${cp3x} ${cp3y}, ${cp4x} ${cp4y}, ${x2} ${y2}`;
+    const areaD = `${pathD} L ${x2} 150 L ${x0} 150 Z`;
+
+    return {
+      points: [
+        { label: 'Well-Placed', x: x0, y: y0, value: values[0], color: '#64748B' },
+        { label: 'Promotable', x: x1, y: y1, value: values[1], color: '#10B981' },
+        { label: 'High Potential', x: x2, y: y2, value: values[2], color: '#6366F1' }
+      ],
+      pathD,
+      areaD,
+      maxVal
+    };
+  }, [reportDistributionCounts]);
+
+  // Core Calibration Assessment Wizard Operations 
+  const handleOpenAssessment = (employee) => {
+    setSelectedEmployee(employee);
+    setTempScores({
+      ability: { ...employee.scores.ability },
+      aspiration: { ...employee.scores.aspiration },
+      leadership: { ...employee.scores.leadership }
+    });
+    setTempEvidence({ ...employee.evidence });
+    setTempComments(employee.managerComments || '');
+    setActiveFormStep(0); 
+  };
+
+  const isStepComplete = (stepNum) => {
+    if (stepNum === 0) return true;
+    if (stepNum === 1) {
+      const indicators = ['1.1', '1.2', '1.3', '1.4'];
+      return indicators.every(id => tempScores.ability && tempScores.ability[id] !== undefined && tempScores.ability[id] !== null && tempScores.ability[id] !== '');
+    }
+    if (stepNum === 2) {
+      const indicators = ['2.1', '2.2', '2.3', '2.4'];
+      return indicators.every(id => tempScores.aspiration && tempScores.aspiration[id] !== undefined && tempScores.aspiration[id] !== null && tempScores.aspiration[id] !== '');
+    }
+    if (stepNum === 3) {
+      const indicators = ['3.1', '3.2', '3.3', '3.4'];
+      return indicators.every(id => tempScores.leadership && tempScores.leadership[id] !== undefined && tempScores.leadership[id] !== null && tempScores.leadership[id] !== '');
+    }
+    return true;
+  };
+
+  const isStepLocked = (stepNum) => {
+    if (isFormReadOnly) return false;
+    if (stepNum === 0) return false;
+    if (activeFormStep === 0 && stepNum > 0) return true;
+    
+    for (let i = 1; i < stepNum; i++) {
+      if (!isStepComplete(i)) return true;
+    }
+    return false;
+  };
+
+  const navigateToStep = (targetStep) => {
+    if (activeFormStep > 0 && selectedEmployee && !isFormReadOnly) {
+      setEmployees(prev => prev.map(emp => {
+        if (emp.id === selectedEmployee.id) {
+          return {
+            ...emp,
+            status: 'Draft',
+            scores: { ...tempScores },
+            evidence: { ...tempEvidence },
+            managerComments: tempComments
+          };
+        }
+        return emp;
+      }));
+    }
+    setActiveFormStep(targetStep);
+  };
+
+  const handleStepClick = (targetStep) => {
+    if (isFormReadOnly) {
+      setActiveFormStep(targetStep);
+      return;
+    }
+
+    if (activeFormStep === 0 && targetStep !== 0) {
+      triggerToast("Please read the guidelines and click 'Agree & Start Assessment' to begin.", "error");
+      return;
+    }
+    
+    if (targetStep <= activeFormStep) {
+      navigateToStep(targetStep);
+      return;
+    }
+
+    for (let i = 1; i < targetStep; i++) {
+      if (!isStepComplete(i)) {
+        const sectionNames = { 1: "Ability", 2: "Aspiration", 3: "Leadership" };
+        triggerToast(`Prerequisite incomplete: Please assign all ratings in the ${sectionNames[i]} section first.`, "error");
+        return;
+      }
+    }
+    navigateToStep(targetStep);
+  };
+
+  // Assessment flow controllers explicitly declared to resolve referencing crashes
+  const handleSaveDraft = () => {
+    if (!selectedEmployee) return;
+    setEmployees(prev => prev.map(emp => {
+      if (emp.id === selectedEmployee.id) {
+        return {
+          ...emp,
+          status: 'Draft',
+          scores: { ...tempScores },
+          evidence: { ...tempEvidence },
+          managerComments: tempComments
+        };
+      }
+      return emp;
+    }));
+    triggerToast("Progress draft saved", "success");
+  };
+
+  const handleNextStep = () => {
+    if (activeFormStep === 0) {
+      navigateToStep(1);
+      return;
+    }
+    if (!isStepComplete(activeFormStep) && !isFormReadOnly) {
+      const sectionNames = { 1: "Ability", 2: "Aspiration", 3: "Leadership" };
+      triggerToast(`Please assign ratings to all 4 behaviors in the ${sectionNames[activeFormStep]} section to proceed.`, "error");
+      return;
+    }
+    navigateToStep(Math.min(4, activeFormStep + 1));
+  };
+
+  const handleSubmitAssessment = () => {
+    const dimensionMapping = [
+      { key: 'ability', stepNum: 1, label: 'Ability', indicators: ['1.1', '1.2', '1.3', '1.4'] },
+      { key: 'aspiration', stepNum: 2, label: 'Aspiration', indicators: ['2.1', '2.2', '2.3', '2.4'] },
+      { key: 'leadership', stepNum: 3, label: 'Leadership', indicators: ['3.1', '3.2', '3.3', '3.4'] }
+    ];
+
+    for (const dimension of dimensionMapping) {
+      for (const id of dimension.indicators) {
+        const rating = tempScores[dimension.key]?.[id];
+        
+        if (rating === undefined || rating === null || rating === '') {
+          triggerToast(`Redirecting: Please assign a rating score for Indicator ${id} under ${dimension.label}.`, "error");
+          setActiveFormStep(dimension.stepNum);
+          setTimeout(() => {
+            const el = document.getElementById(`indicator-card-${id}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.classList.add('ring-4', 'ring-rose-500/30', 'border-rose-300');
+              setTimeout(() => {
+                el.classList.remove('ring-4', 'ring-rose-500/30', 'border-rose-300');
+              }, 4000);
+            }
+          }, 300);
+          return;
+        }
+
+        const evidenceText = tempEvidence[id] || '';
+        if (evidenceText.trim().length < 100) {
+          triggerToast(`Redirecting: Evidence description for Indicator ${id} must contain at least 100 characters.`, "error");
+          setActiveFormStep(dimension.stepNum);
+          setTimeout(() => {
+            const el = document.getElementById(`indicator-card-${id}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.classList.add('ring-4', 'ring-rose-500/30', 'border-rose-300');
+              setTimeout(() => {
+                el.classList.remove('ring-4', 'ring-rose-500/30', 'border-rose-300');
+              }, 4000);
+            }
+          }, 300);
+          return;
+        }
+      }
+    }
+
+    if (tempComments.trim().length < 100) {
+      triggerToast(`Cannot submit: Final Manager Comments must contain at least 100 characters (currently ${tempComments.trim().length}).`, "error");
+      setActiveFormStep(4);
+      return;
+    }
+
+    setEmployees(prev => prev.map(emp => {
+      if (emp.id === selectedEmployee.id) {
+        return {
+          ...emp,
+          status: 'Completed',
+          scores: { ...tempScores },
+          evidence: { ...tempEvidence },
+          managerComments: tempComments
+        };
+      }
+      return emp;
+    }));
+    triggerToast("Assessment submitted and locked successfully.", "success");
+    setSelectedEmployee(null);
+  };
+
+  // Admin Specific Functions
+  const handleOpenAdminCreate = () => {
+    setAdminForm({
+      id: `EMP${String(employees.length + 1).padStart(3, '0')}`,
+      name: '',
+      email: '',
+      role: '',
+      impactLevel: 'Medium',
+      entity: 'Zuari Industries Ltd',
+      department: 'Engineering & R&D',
+      location: 'Bengaluru Outer Ring Road CoE',
+      managerId: 'MGR001',
+      managerEmail: 'sandeep.sharma@zuari.com'
+    });
+    setAdminSelectedEmployee(null);
+    setIsAdminCreateOpen(true);
+  };
+
+  const handleOpenAdminEdit = (emp) => {
+    setAdminSelectedEmployee(emp);
+    setAdminForm({
+      id: emp.id,
+      name: emp.name,
+      email: emp.email || '',
+      role: emp.role,
+      impactLevel: emp.impactLevel || '',
+      entity: emp.entity || 'Zuari Industries Ltd',
+      department: emp.department,
+      location: emp.location,
+      managerId: emp.managerId,
+      managerEmail: emp.managerEmail || ''
+    });
+    setIsAdminCreateOpen(true);
+  };
+
+  const handleSaveAdminEmployee = (e) => {
+    e.preventDefault();
+    if (!adminForm.id || !adminForm.name || !adminForm.role) {
+      triggerToast("Employee ID, Name and Designation/Role are strictly required.", "error");
+      return;
+    }
+
+    if (adminSelectedEmp) {
+      setEmployees(prev => prev.map(emp => {
+        if (emp.id === adminSelectedEmp.id) {
+          return {
+            ...emp,
+            id: adminForm.id,
+            name: adminForm.name,
+            email: adminForm.email,
+            role: adminForm.role,
+            impactLevel: adminForm.impactLevel,
+            entity: adminForm.entity,
+            department: adminForm.department,
+            location: adminForm.location,
+            managerId: adminForm.managerId,
+            managerEmail: adminForm.managerEmail
+          };
+        }
+        return emp;
+      }));
+      triggerToast("Employee record successfully updated.");
+    } else {
+      const exists = employees.some(emp => emp.id === adminForm.id);
+      if (exists) {
+        triggerToast("An employee with this exact ID already exists in the system directory.", "error");
+        return;
+      }
+      const newEmp = {
+        ...adminForm,
+        status: 'Pending',
+        avatar: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 999999)}?w=150&fit=crop&q=80`,
+        scores: { ability: {}, aspiration: {}, leadership: {} },
+        evidence: {},
+        managerComments: ''
+      };
+      setEmployees(prev => [...prev, newEmp]);
+      triggerToast("New employee directory card added successfully.");
+    }
+    setIsAdminCreateOpen(false);
+  };
+
+  const handleDeleteEmployee = (id) => {
+    if (confirm("Are you absolutely sure you want to permanently remove this employee from the directory? This action cannot be undone.")) {
+      setEmployees(prev => prev.filter(emp => emp.id !== id));
+      triggerToast("Employee record deleted successfully.", "error");
+    }
+  };
+
+  const handleBulkCSVUpload = () => {
+    if (!adminBulkText.trim()) {
+      triggerToast("Please enter or paste raw data to initiate import.", "error");
+      return;
+    }
+
+    const lines = adminBulkText.split('\n');
+    let addedCount = 0;
+    let updatedCount = 0;
+    const newEmployees = [...employees];
+
+    lines.forEach((line, idx) => {
+      if (idx === 0 && line.toLowerCase().includes('emp id')) return; 
+      if (!line.trim()) return;
+
+      const cols = line.split(/,|\t/).map(c => c.trim().replace(/^"|"$/g, ''));
+      if (cols.length < 2) return;
+
+      const [id, name, email, role, impactLevel, entity, managerId, managerEmail, location, department] = cols;
+
+      if (!id || !name) return;
+
+      const existingIdx = newEmployees.findIndex(emp => emp.id === id);
+      const payload = {
+        id,
+        name,
+        email: email || `${name.toLowerCase().replace(/\s+/g, '.')}@zuari.com`,
+        role: role || 'Associate',
+        impactLevel: impactLevel || 'Medium',
+        entity: entity || 'Zuari Industries Ltd',
+        managerId: managerId || 'MGR001',
+        managerEmail: managerEmail || 'sandeep.sharma@zuari.com',
+        location: location || 'Bengaluru Outer Ring Road CoE',
+        department: department || 'Engineering & R&D'
+      };
+
+      if (existingIdx > -1) {
+        newEmployees[existingIdx] = {
+          ...newEmployees[existingIdx],
+          ...payload
+        };
+        updatedCount++;
+      } else {
+        newEmployees.push({
+          ...payload,
+          status: 'Pending',
+          avatar: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 999999)}?w=150&fit=crop&q=80`,
+          scores: { ability: {}, aspiration: {}, leadership: {} },
+          evidence: {},
+          managerComments: ''
+        });
+        addedCount++;
+      }
+    });
+
+    setEmployees(newEmployees);
+    triggerToast(`Bulk upload complete! Added ${addedCount} records, updated ${updatedCount} records.`);
+    setIsAdminBulkOpen(false);
+    setAdminBulkText('');
+  };
+
+  const handleExportAdminCSV = () => {
+    const clean = (val) => {
+      if (val === undefined || val === null) return "";
+      let str = String(val).replace(/"/g, '""');
+      return str.includes(",") || str.includes("\n") || str.includes('"') ? `"${str}"` : str;
+    };
+
+    const headers = [
+      "Employee Name",
+      "Emp ID",
+      "employee email",
+      "Designation",
+      "Impact Level",
+      "employee entity",
+      "Manager Name",
+      "Manager ID",
+      "manager email",
+      "Location",
+      "Department",
+      "Function"
+    ];
+
+    const dataRows = [headers.join(",")];
+
+    employees.forEach(emp => {
+      const mgrName = USERS[emp.managerId]?.name || emp.managerId;
+      const fn = DEPARTMENT_TO_FUNCTION[emp.department] || 'Operations';
+      
+      const row = [
+        emp.name,
+        emp.id,
+        emp.email || `${emp.name.toLowerCase().replace(/\s+/g, '.')}@zuari.com`,
+        emp.role,
+        emp.impactLevel || 'Medium',
+        emp.entity || 'Zuari Industries Ltd',
+        mgrName,
+        emp.managerId,
+        emp.managerEmail || 'sandeep.sharma@zuari.com',
+        emp.location,
+        emp.department,
+        fn
+      ];
+
+      dataRows.push(row.map(clean).join(","));
+    });
+
+    try {
+      const finalCSVContent = "\uFEFF" + dataRows.join("\n");
+      const blob = new Blob([finalCSVContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `employee_admin_registry_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      triggerToast("System Administrator CSV log downloaded.", "success");
+    } catch (err) {
+      triggerToast("Error assembling detailed export log.", "error");
+    }
+  };
+
+  const handleExportCSV = () => {
+    const clean = (val) => {
+      if (val === undefined || val === null) return "";
+      let str = String(val).replace(/"/g, '""');
+      return str.includes(",") || str.includes("\n") || str.includes('"') ? `"${str}"` : str;
+    };
+
+    const headers = [
+      "Employee ID", "Employee Name", "Role", "Department", "Location", "Manager Name",
+      "Evaluation Status", "Ability Subtotal", "Aspiration Subtotal", "Leadership Subtotal",
+      "Grand Total Score", "Critical Low Scores Count", "Final Talent Classification"
+    ];
+
+    const dataRows = [headers.join(",")];
+
+    employees.forEach(emp => {
+      const m = USERS[emp.managerId] || { name: emp.managerId };
+      const ab = calculateSectionScore('ability', emp.scores);
+      const asp = calculateSectionScore('aspiration', emp.scores);
+      const lead = calculateSectionScore('leadership', emp.scores);
+      const grandTotal = ab.sum + asp.sum + lead.sum;
+
+      let lowCount = 0;
+      const allScoresFlat = { ...emp.scores.ability, ...emp.scores.aspiration, ...emp.scores.leadership };
+      Object.values(allScoresFlat).forEach(val => {
+        if (val !== undefined && val !== null && Number(val) < 3) {
+          lowCount++;
+        }
+      });
+
+      const classification = getTalentClassification(grandTotal, lowCount);
+      let classLabel = emp.status !== 'Pending' ? (classification.forcedExclusion ? "HiPo Exclusion Applied" : classification.category) : "Awaiting Assessment";
+
+      const row = [
+        emp.id, emp.name, emp.role, emp.department, emp.location, m.name, emp.status,
+        emp.status !== 'Pending' ? ab.sum : '—',
+        emp.status !== 'Pending' ? asp.sum : '—',
+        emp.status !== 'Pending' ? lead.sum : '—',
+        emp.status !== 'Pending' ? grandTotal : '—',
+        emp.status !== 'Pending' ? lowCount : '—',
+        classLabel
+      ];
+      dataRows.push(row.map(clean).join(","));
+    });
+
+    try {
+      const finalCSVContent = "\uFEFF" + dataRows.join("\n");
+      const blob = new Blob([finalCSVContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `talent_calibration_log_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      triggerToast("Zuari Calibration log downloaded.", "success");
+    } catch (err) {
+      triggerToast("Error assembling export log.", "error");
+    }
+  };
+
+  if (!currentUser) {
+    return (
+      <div className="h-screen w-screen overflow-hidden bg-[#FAFAFA] flex flex-col justify-between">
+        
+        <div className="absolute top-6 left-8 z-50 flex items-center gap-4">
+          <img 
+            src="https://www.zuariindustries.in/assets/web/img/logo/zuari_logo.png" 
+            alt="Zuari Industries Logo" 
+            className="h-8 w-auto object-contain"
+            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/120x40/f1f5f9/0f172a?text=ZUARI"; }}
+          />
+          <div className="h-4 w-px bg-slate-200"></div>
+          <img 
+            src="https://www.adventz.com/html/images/logo.png" 
+            alt="Group Logo" 
+            className="h-8 w-auto object-contain hidden sm:block"
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+        </div>
+
+        <div className="w-full h-full grid grid-cols-1 lg:grid-cols-2">
+          
+          <div className="flex flex-col justify-center px-8 md:px-16 lg:px-24 bg-white relative">
+            <div className="max-w-md w-full mx-auto space-y-8">
+              
+              <div className="space-y-3">
+                <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                  Talent Potential Assessment Tool
+                </h1>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Log in with your company Microsoft ID to fill the talent potential form for your reportees.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Select Active SSO Directory Profile</span>
+                
+                {Object.values(USERS).map(user => {
+                  const isSelected = selectedLoginProfile?.id === user.id;
+                  return (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => setSelectedLoginProfile(user)}
+                      className={`w-full px-5 py-3.5 bg-white border rounded-full text-left transition duration-200 flex items-center justify-between group relative ${
+                        isSelected 
+                          ? 'border-slate-900 ring-2 ring-slate-900/5 shadow-xs' 
+                          : 'border-slate-200 hover:border-slate-400 hover:bg-slate-50/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <img 
+                          src={user.avatar} 
+                          alt={user.name} 
+                          className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" 
+                        />
+                        <div className="truncate">
+                          <span className="font-bold text-slate-800 text-xs block group-hover:text-slate-900">{user.name}</span>
+                          <span className="text-slate-400 text-[10px] block mt-0.5 truncate">{user.role} • {user.location}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-[8px] px-2 py-0.5 rounded-full font-mono uppercase font-bold border ${
+                          user.type === 'hr' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' :
+                          user.type === 'admin' ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                        }`}>
+                          {user.type === 'hr' ? 'HR' : user.type === 'admin' ? 'Admin' : 'Manager'}
+                        </span>
+                        <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                          isSelected ? 'border-slate-955 bg-slate-950' : 'border-slate-300'
+                        }`}>
+                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white"></div>}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedLoginProfile) {
+                      triggerToast("Please select a directory profile first to authenticate.", "error");
+                      return;
+                    }
+                    setCurrentUser(selectedLoginProfile);
+                    setCurrentTab(selectedLoginProfile.type === 'admin' ? 'admin' : (selectedLoginProfile.type === 'hr' ? 'reports' : 'team'));
+                    triggerToast(`Access Granted: Logged in as ${selectedLoginProfile.name}`);
+                  }}
+                  className="w-full py-4 bg-black hover:bg-slate-900 text-white font-bold text-xs rounded-full shadow-md hover:shadow-lg transition-all text-center tracking-wider uppercase"
+                >
+                  Login to Platform
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <div className="hidden lg:flex flex-col justify-center items-center p-8 bg-[#F5FAF6] relative overflow-hidden">
+            <div className="relative w-[480px] h-[360px]" style={{ perspective: '1500px' }}>
+              
+              <div className="absolute -bottom-1 w-[80%] left-[10%] h-4 bg-black/10 rounded-full filter blur-md transform scale-y-50 pointer-events-none"></div>
+
+              <div 
+                className="w-full h-full bg-[#f8fafc] rounded-3xl p-3 border-[6px] border-slate-300 shadow-2xl transition-transform duration-500 hover:scale-[1.02] relative" 
+                style={{ 
+                  transform: 'rotateY(-15deg) rotateX(4deg) rotateZ(1deg)', 
+                  transformStyle: 'preserve-3d',
+                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), inset 0 2px 4px rgba(255,255,255,0.8)'
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/20 rounded-2xl pointer-events-none z-10"></div>
+                
+                <div className="w-full h-full bg-white rounded-xl overflow-hidden text-[8px] flex flex-col font-sans select-none">
+                  
+                  <div className="bg-slate-900 p-2 text-white flex justify-between items-center shrink-0">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
+                      <span className="font-bold text-[9px] tracking-wide">Talent Workspace</span>
+                    </div>
+                    <div className="w-4 h-4 rounded-full bg-slate-700"></div>
+                  </div>
+
+                  <div className="p-2.5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div>
+                      <span className="font-bold text-slate-800 text-[9px] block">My Direct Reports</span>
+                      <span className="text-[7px] text-slate-400">Active evaluation pipelines</span>
+                    </div>
+                    <div className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[7px] font-medium text-slate-500">
+                      Manager Mode
+                    </div>
+                  </div>
+
+                  <div className="px-2.5 pt-2 grid grid-cols-4 gap-1.5">
+                     <div className="bg-slate-950 text-white p-1.5 rounded-md border border-slate-950">
+                       <span className="text-[6px] uppercase tracking-wide text-slate-400 block">Total</span>
+                       <span className="font-bold text-[10px] block leading-none mt-0.5">4</span>
+                     </div>
+                     <div className="bg-white p-1.5 rounded-md border border-slate-100 shadow-xs">
+                       <span className="text-[6px] uppercase tracking-wide text-slate-400 block font-medium">Pending</span>
+                       <span className="font-bold text-[10px] block leading-none text-slate-800 mt-0.5">2</span>
+                     </div>
+                     <div className="bg-white p-1.5 rounded-md border border-slate-100 shadow-xs">
+                       <span className="text-[6px] uppercase tracking-wide text-slate-400 block font-medium">Drafts</span>
+                       <span className="font-bold text-[10px] block text-slate-800 leading-none mt-0.5">1</span>
+                     </div>
+                     <div className="bg-emerald-50 p-1.5 rounded-md border border-emerald-100">
+                       <span className="text-[6px] uppercase tracking-wide text-emerald-600 block">Done</span>
+                       <span className="font-bold text-[10px] text-emerald-950 leading-none mt-0.5">1</span>
+                     </div>
+                  </div>
+
+                  <div className="mx-2.5 mt-2 p-1 bg-slate-50 rounded border border-slate-100 text-[6px] text-slate-400">
+                    Search by name, role, department...
+                  </div>
+
+                  <div className="px-2.5 py-2 flex-1 overflow-hidden">
+                    <table className="w-full text-left text-[7px] border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-400 font-bold uppercase border-b border-slate-100 text-[6px]">
+                          <th className="py-1">Employee</th>
+                          <th className="py-1">Role</th>
+                          <th className="py-1">Status</th>
+                          <th className="py-1 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        <tr>
+                          <td className="py-1 font-bold text-slate-800">Rahul Iyer</td>
+                          <td className="py-1 text-slate-500">Lead Architect</td>
+                          <td className="py-1"><span className="px-1 py-0.2 bg-amber-50 text-amber-700 rounded-full font-bold text-[6px]">DRAFT</span></td>
+                          <td className="py-1 text-right"><span className="text-indigo-600 font-bold text-[6px]">Calibrate</span></td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 font-bold text-slate-800">Priya Patel</td>
+                          <td className="py-1 text-slate-500">Sr. Product Mgr</td>
+                          <td className="py-1"><span className="px-1 py-0.2 bg-emerald-50 text-emerald-700 rounded-full font-bold text-[6px]">COMPLETED</span></td>
+                          <td className="py-1 text-right"><span className="text-slate-400 text-[6px]">View</span></td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 font-bold text-slate-800">Arjun Mehta</td>
+                          <td className="py-1 text-slate-500">Sr. Engineer</td>
+                          <td className="py-1"><span className="px-1 py-0.2 bg-slate-100 text-slate-600 rounded-full font-bold text-[6px]">PENDING</span></td>
+                          <td className="py-1 text-right"><span className="text-indigo-600 font-bold text-[6px]">Calibrate</span></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FDFDFD] text-slate-800 flex flex-col font-sans">
+      
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl">
+          <div className={`w-2 h-2 rounded-full ${toast.type === 'success' ? 'bg-emerald-400' : 'bg-rose-400'}`}></div>
+          <span className="text-xs text-white font-medium">{toast.message}</span>
+        </div>
+      )}
+
+      <header className="bg-white border-b border-slate-100 sticky top-0 z-40 shadow-xs">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          
+          <div className="flex items-center gap-4">
+            <img 
+              src="https://www.zuariindustries.in/assets/web/img/logo/zuari_logo.png" 
+              alt="Zuari Industries" 
+              className="h-10 w-auto object-contain"
+              onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/120x40/f1f5f9/0f172a?text=ZUARI"; }}
+            />
+            <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+            <span className="text-slate-400 text-[9px] uppercase font-bold font-mono tracking-wider hidden sm:block">
+              Talent Assessment Workspace
+            </span>
+          </div>
+
+          <div className="hidden lg:block text-right px-4">
+            <span className="text-[11px] text-slate-500 font-medium leading-relaxed">
+              For any doubts, reach out to <strong className="text-slate-800 font-bold">Person A</strong> (Lead - Talent Management) at <a href="mailto:person.a@company.com" className="text-indigo-600 hover:underline">person.a@company.com</a> or <span className="text-slate-700 font-mono font-bold">+91 98765 43210</span>
+            </span>
+          </div>
+
+          {/* Role Tab Navigation Bar */}
+          <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-100">
+            {currentUser.type === 'hr' && (
+              <>
+                <button 
+                  onClick={() => setCurrentTab('team')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                    currentTab === 'team' ? 'bg-white text-slate-900 shadow-xs border border-slate-100' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  All Teams Directory
+                </button>
+                <button 
+                  onClick={() => setCurrentTab('reports')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                    currentTab === 'reports' ? 'bg-white text-slate-950 shadow-xs border border-slate-100' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Reports & Insights
+                </button>
+              </>
+            )}
+
+            {currentUser.type === 'admin' && (
+              <button 
+                onClick={() => setCurrentTab('admin')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  currentTab === 'admin' ? 'bg-white text-slate-900 shadow-xs border border-slate-100' : 'text-slate-505'
+                }`}
+              >
+                <Shield className="w-4 h-4 text-rose-500" />
+                System Administration
+              </button>
+            )}
+
+            {currentUser.type === 'manager' && (
+              <button 
+                onClick={() => setCurrentTab('team')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  currentTab === 'team' ? 'bg-white text-slate-900 shadow-xs border border-slate-100' : 'text-slate-505'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                My Direct Reports
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2.5 text-right">
+              <div className="hidden md:block">
+                <span className="font-bold text-slate-800 text-xs block">{currentUser.name}</span>
+                <span className="text-slate-400 text-[9px] font-mono uppercase block">{currentUser.role}</span>
+              </div>
+              <img src={currentUser.avatar} alt={currentUser.name} className="w-9 h-9 rounded-full object-cover border border-slate-200" />
+            </div>
+            
+            <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+            <img 
+              src="https://www.adventz.com/html/images/logo.png" 
+              alt="Group Logo" 
+              className="h-8 w-auto object-contain hidden sm:block"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            
+            <div className="h-6 w-px bg-slate-200"></div>
+            <button 
+              onClick={() => {
+                setCurrentUser(null);
+                setSelectedEmployee(null);
+                setSelectedLoginProfile(null);
+                triggerToast("Logged out successfully");
+              }}
+              title="Sign Out"
+              className="p-1.5 text-slate-400 hover:text-slate-700 bg-slate-50 rounded-lg hover:bg-slate-100 transition"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
+        
+        {/* SYSTEM ADMIN WORKSPACE VIEW */}
+        {currentTab === 'admin' && currentUser.type === 'admin' && (
+          <div className="space-y-8 animate-in fade-in duration-200">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h1 className="text-2xl font-serif font-bold text-slate-900 flex items-center gap-2">
+                  <Shield className="w-7 h-7 text-rose-500" />
+                  Zuari Talent Directory Administrator Workspace
+                </h1>
+                <p className="text-slate-505 text-xs mt-1">
+                  Add, edit, bulk upload, and fully audit employee calibration profiles.
+                </p>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-2">
+                <button 
+                  onClick={handleOpenAdminCreate}
+                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Employee
+                </button>
+                <button 
+                  onClick={() => setIsAdminBulkOpen(true)}
+                  className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-100 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition shadow-sm"
+                >
+                  <Upload className="w-4 h-4 text-rose-600" />
+                  Bulk Upload CSV
+                </button>
+                <button 
+                  onClick={handleExportAdminCSV}
+                  className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition shadow-xs"
+                >
+                  <Download className="w-4 h-4 text-emerald-600" />
+                  Download Admin CSV
+                </button>
+              </div>
+            </div>
+
+            {/* Admin Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-xs">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Directory Records</span>
+                <span className="text-2xl font-serif font-bold block text-slate-800 mt-1">{employees.length}</span>
+              </div>
+              <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-xs">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Calibrated Profiles</span>
+                <span className="text-2xl font-serif font-bold block text-emerald-600 mt-1">{employees.filter(e => e.status === 'Completed').length}</span>
+              </div>
+              <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-xs">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Active Drafts</span>
+                <span className="text-2xl font-serif font-bold block text-amber-600 mt-1">{employees.filter(e => e.status === 'Draft').length}</span>
+              </div>
+              <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-xs">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Pending Intake</span>
+                <span className="text-2xl font-serif font-bold block text-slate-400 mt-1">{employees.filter(e => e.status === 'Pending').length}</span>
+              </div>
+            </div>
+
+            {/* Admin Grid search filters */}
+            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-xs flex justify-between items-center gap-4">
+              <div className="relative w-80">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input 
+                  type="text" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Filter by Emp ID, Name, Manager ID, Dept..."
+                  className="w-full pl-9 pr-4 py-1.5 bg-slate-50 hover:bg-slate-100/50 focus:bg-white text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 transition"
+                />
+              </div>
+              {searchTerm && (
+                <button onClick={() => setSearchTerm('')} className="text-[10px] text-slate-400 hover:text-slate-900 font-semibold underline">
+                  Clear Search
+                </button>
+              )}
+            </div>
+
+            {/* Master Roster Data Grid */}
+            <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse font-sans">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-mono text-[9px] font-bold border-b border-slate-100">
+                      <th className="p-3 pl-4">Emp ID</th>
+                      <th className="p-3">Employee Name</th>
+                      <th className="p-3">Employee Email</th>
+                      <th className="p-3">Designation</th>
+                      <th className="p-3">Impact Level</th>
+                      <th className="p-3">Employee Entity</th>
+                      <th className="p-3">Manager Name</th>
+                      <th className="p-3">Manager ID</th>
+                      <th className="p-3">Manager Email</th>
+                      <th className="p-3">Location</th>
+                      <th className="p-3">Department</th>
+                      <th className="p-3">Function</th>
+                      <th className="p-3 pr-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-sans">
+                    {visibleEmployees.map((emp) => {
+                      const mgrName = USERS[emp.managerId]?.name || emp.managerId;
+                      const fn = DEPARTMENT_TO_FUNCTION[emp.department] || 'Operations';
+                      return (
+                        <tr key={emp.id} className="hover:bg-slate-50/50 transition text-slate-700">
+                          <td className="p-3 pl-4 font-mono font-bold text-rose-600">{emp.id}</td>
+                          <td className="p-3 font-semibold text-slate-900 whitespace-nowrap">{emp.name}</td>
+                          <td className="p-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">{emp.email || '—'}</td>
+                          <td className="p-3 text-slate-700 font-medium whitespace-nowrap">{emp.role}</td>
+                          <td className="p-3">
+                            <span className="inline-block px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
+                              {emp.impactLevel || '—'}
+                            </span>
+                          </td>
+                          <td className="p-3 text-slate-600 whitespace-nowrap">{emp.entity || 'Zuari Industries Ltd'}</td>
+                          <td className="p-3 text-slate-800 whitespace-nowrap font-medium">{mgrName}</td>
+                          <td className="p-3 font-mono text-slate-400">{emp.managerId}</td>
+                          <td className="p-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">{emp.managerEmail || '—'}</td>
+                          <td className="p-3 text-slate-600 whitespace-nowrap">{emp.location}</td>
+                          <td className="p-3 text-slate-600 whitespace-nowrap">{emp.department}</td>
+                          <td className="p-3 font-bold text-slate-700">{fn}</td>
+                          <td className="p-3 pr-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button 
+                                onClick={() => handleOpenAdminEdit(emp)}
+                                className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-900 transition"
+                                title="Edit Record"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteEmployee(emp.id)}
+                                className="p-1.5 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600 transition"
+                                title="Delete Record"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 animate-pulse" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DIRECTORY VIEW FOR MANAGERS & GENERAL ALL TEAMS DIRECTORY */}
+        {currentTab === 'team' && !selectedEmployee && (
+          <div className="space-y-8 animate-in fade-in duration-200">
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h1 className="text-2xl font-serif font-bold text-slate-900">
+                  {currentUser.type === 'hr' ? 'Global Talent Directory' : 'My Direct Reports'}
+                </h1>
+                <p className="text-slate-505 text-xs mt-1">
+                  {currentUser.type === 'hr' 
+                    ? 'Consolidated view of all active departmental units across regional centers.' 
+                    : `Active evaluation pipeline for ${currentUser.department} - ${currentUser.location}.`
+                  }
+                </p>
+              </div>
+            </div>
+
+            {/* Horizontal KPI Row alignment preserved on all resolutions */}
+            <div className="grid grid-cols-4 gap-3 md:gap-4">
+              <button 
+                onClick={() => setStatusFilter('ALL')}
+                className={`p-3 md:p-4 rounded-xl text-left transition border shadow-xs relative overflow-hidden ${
+                  statusFilter === 'ALL' 
+                    ? 'bg-slate-950 text-white border-slate-950 ring-2 ring-slate-900/10' 
+                    : 'bg-white text-slate-800 border-slate-100 hover:border-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Directs</span>
+                  <Users className={`w-3.5 h-3.5 ${statusFilter === 'ALL' ? 'text-white' : 'text-slate-400'}`} />
+                </div>
+                <span className="text-xl md:text-3xl font-serif font-bold block leading-none">{kpis.total}</span>
+              </button>
+
+              <button 
+                onClick={() => setStatusFilter('Pending')}
+                className={`p-3 md:p-4 rounded-xl text-left transition border shadow-xs relative overflow-hidden ${
+                  statusFilter === 'Pending' 
+                    ? 'bg-slate-100 text-slate-900 border-slate-200' 
+                    : 'bg-white text-slate-800 border-slate-100 hover:border-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Pending</span>
+                  <Clock className="w-3.5 h-3.5 text-orange-500" />
+                </div>
+                <span className="text-xl md:text-3xl font-serif font-bold block leading-none text-slate-800">{kpis.pending}</span>
+              </button>
+
+              <button 
+                onClick={() => setStatusFilter('Draft')}
+                className={`p-3 md:p-4 rounded-xl text-left transition border shadow-xs relative overflow-hidden ${
+                  statusFilter === 'Draft' 
+                    ? 'bg-slate-100 text-slate-900 border-slate-200' 
+                    : 'bg-white text-slate-800 border-slate-100 hover:border-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Drafts</span>
+                  <Activity className="w-3.5 h-3.5 text-blue-500" />
+                </div>
+                <span className="text-xl md:text-3xl font-serif font-bold block leading-none text-slate-800">{kpis.drafts}</span>
+              </button>
+
+              <button 
+                onClick={() => setStatusFilter('Completed')}
+                className={`p-3 md:p-4 rounded-xl text-left transition border shadow-xs relative overflow-hidden ${
+                  statusFilter === 'Completed' 
+                    ? 'bg-emerald-50 text-emerald-950 border-emerald-200' 
+                    : 'bg-white text-slate-800 border-slate-100 hover:border-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-emerald-600 truncate">Completed</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                </div>
+                <span className="text-xl md:text-3xl font-serif font-bold block leading-none text-emerald-955">{kpis.completed}</span>
+              </button>
+            </div>
+
+            {/* Dynamic Summary/Directory Views block for Succession Lead */}
+            {currentUser?.type === 'hr' && (
+              <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h3 className="font-serif font-bold text-slate-900 text-sm">Organizational Roll-up Summaries</h3>
+                    <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest mt-0.5">Quick calibration status overview across the firm</p>
+                  </div>
+                  
+                  {/* Directory Sub-Tabs */}
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/50">
+                    <button
+                      onClick={() => setDirectorySubTab('function')}
+                      className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold transition uppercase tracking-wider ${
+                        directorySubTab === 'function' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Function View
+                    </button>
+                    <button
+                      onClick={() => setDirectorySubTab('department')}
+                      className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold transition uppercase tracking-wider ${
+                        directorySubTab === 'department' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Department View
+                    </button>
+                    <button
+                      onClick={() => setDirectorySubTab('manager')}
+                      className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold transition uppercase tracking-wider ${
+                        directorySubTab === 'manager' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-505'
+                      }`}
+                    >
+                      Manager View
+                    </button>
+                  </div>
+                </div>
+
+                {/* Render Function View Table */}
+                {directorySubTab === 'function' && (
+                  <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-mono text-[9px] font-bold border-b border-slate-100">
+                          <th className="p-3 pl-4">Business Function</th>
+                          <th className="p-3 text-center">Total Headcount</th>
+                          <th className="p-3 text-center">Calibration Progress</th>
+                          <th className="p-3 text-center">Validated HiPos</th>
+                          <th className="p-3 text-center">HiPo Density</th>
+                          <th className="p-3 pr-4 text-right">Quick Filter</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {functionSummaries.map(func => {
+                          const pct = func.total > 0 ? ((func.completed / func.total) * 100).toFixed(0) : 0;
+                          const density = func.completed > 0 ? ((func.hipos / func.completed) * 100).toFixed(1) : '0.0';
+                          return (
+                            <tr key={func.name} className="hover:bg-slate-50/50 transition">
+                              <td className="p-3 pl-4 font-bold text-slate-800">{func.name}</td>
+                              <td className="p-3 text-center font-mono text-slate-700 font-bold">{func.total}</td>
+                              <td className="p-3 text-center">
+                                <span className="font-mono font-bold text-slate-800">{pct}%</span>
+                                <span className="text-[10px] text-slate-400 block">({func.completed}/{func.total} Done)</span>
+                              </td>
+                              <td className="p-3 text-center font-mono font-bold text-slate-800">{func.hipos}</td>
+                              <td className="p-3 text-center font-mono">
+                                <span className="px-2 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold text-[10px]">
+                                  {density}%
+                                </span>
+                              </td>
+                              <td className="p-3 pr-4 text-right">
+                                <button
+                                  onClick={() => {
+                                    setFunctionFilter(func.name);
+                                    setDepartmentFilter('ALL');
+                                    setManagerFilter('ALL');
+                                    const el = document.getElementById('employee-main-section');
+                                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                  }}
+                                  className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition ${
+                                    functionFilter === func.name
+                                      ? 'bg-slate-950 text-white'
+                                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                                  }`}
+                                >
+                                  {functionFilter === func.name ? 'Active Filter' : 'Filter below'}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Render Department View Table */}
+                {directorySubTab === 'department' && (
+                  <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-mono text-[9px] font-bold border-b border-slate-100">
+                          <th className="p-3 pl-4">Department Name</th>
+                          <th className="p-3">Parent Function</th>
+                          <th className="p-3 text-center">Total Headcount</th>
+                          <th className="p-3 text-center">Calibration Progress</th>
+                          <th className="p-3 text-center">Validated HiPos</th>
+                          <th className="p-3 text-center">HiPo Density</th>
+                          <th className="p-3 pr-4 text-right">Quick Filter</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {departmentSummaries.map(dept => {
+                          const pct = dept.total > 0 ? ((dept.completed / dept.total) * 100).toFixed(0) : 0;
+                          const density = dept.completed > 0 ? ((dept.hipos / dept.completed) * 100).toFixed(1) : '0.0';
+                          return (
+                            <tr key={dept.name} className="hover:bg-slate-50/50 transition">
+                              <td className="p-3 pl-4 font-bold text-slate-800">{dept.name}</td>
+                              <td className="p-3 text-slate-505 text-[11px] font-semibold">{dept.parent}</td>
+                              <td className="p-3 text-center font-mono text-slate-700 font-bold">{dept.total}</td>
+                              <td className="p-3 text-center">
+                                <span className="font-mono font-bold text-slate-800">{pct}%</span>
+                                <span className="text-[10px] text-slate-400 block">({dept.completed}/{dept.total} Done)</span>
+                              </td>
+                              <td className="p-3 text-center font-mono font-bold text-slate-800">{dept.hipos}</td>
+                              <td className="p-3 text-center font-mono">
+                                <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold text-[10px]">
+                                  {density}%
+                                </span>
+                              </td>
+                              <td className="p-3 pr-4 text-right">
+                                <button
+                                  onClick={() => {
+                                    setDepartmentFilter(dept.name);
+                                    setFunctionFilter('ALL');
+                                    setManagerFilter('ALL');
+                                    const el = document.getElementById('employee-main-section');
+                                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                  }}
+                                  className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition ${
+                                    departmentFilter === dept.name
+                                      ? 'bg-slate-900 text-white'
+                                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                                  }`}
+                                >
+                                  {departmentFilter === dept.name ? 'Active Filter' : 'Filter below'}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Render Manager View Table */}
+                {directorySubTab === 'manager' && (
+                  <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-mono text-[9px] font-bold border-b border-slate-100">
+                          <th className="p-3 pl-4">Manager Name</th>
+                          <th className="p-3">Department</th>
+                          <th className="p-3 text-center">Total Directs</th>
+                          <th className="p-3 text-center text-orange-600">Pending</th>
+                          <th className="p-3 text-center text-blue-600">Drafts</th>
+                          <th className="p-3 text-center text-emerald-600">Completed</th>
+                          <th className="p-3 pr-4 text-right">Quick Filter</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {managerSummaries.map(summary => (
+                          <tr key={summary.id} className="hover:bg-slate-50/50 transition">
+                            <td className="p-3 pl-4 font-bold text-slate-800">{summary.name}</td>
+                            <td className="p-3 text-slate-505 text-[11px]">{summary.department}</td>
+                            <td className="p-3 text-center font-mono font-bold text-slate-700">{summary.total}</td>
+                            <td className="p-3 text-center font-mono text-orange-600 font-bold">{summary.pending}</td>
+                            <td className="p-3 text-center font-mono text-blue-600 font-bold">{summary.draft}</td>
+                            <td className="p-3 text-center font-mono">
+                              <span className={`px-2 py-0.5 rounded font-mono font-bold text-[10px] ${
+                                summary.completed === summary.total && summary.total > 0
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}>
+                                {summary.completed}
+                              </span>
+                            </td>
+                            <td className="p-3 pr-4 text-right">
+                              <button
+                                onClick={() => {
+                                  setManagerFilter(summary.id);
+                                  setDepartmentFilter('ALL');
+                                  setFunctionFilter('ALL');
+                                  const el = document.getElementById('employee-main-section');
+                                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                                className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition ${
+                                  managerFilter === summary.id
+                                    ? 'bg-slate-900 text-white'
+                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                                }`}
+                              >
+                                {managerFilter === summary.id ? 'Active Filter' : 'Filter below'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div id="employee-main-section" className="bg-white p-4 rounded-xl border border-slate-100 shadow-xs flex flex-col md:flex-row gap-3 justify-between items-center">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  <input 
+                    type="text" 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by name, role, department..."
+                    className="w-full pl-9 pr-4 py-1.5 bg-slate-50 hover:bg-slate-100/50 focus:bg-white text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 transition"
+                  />
+                </div>
+                {currentUser?.type === 'hr' && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Function Dropdown */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Function:</span>
+                      <select
+                        value={functionFilter}
+                        onChange={(e) => {
+                          setFunctionFilter(e.target.value);
+                          setDepartmentFilter('ALL');
+                          setManagerFilter('ALL');
+                        }}
+                        className="bg-slate-50 hover:bg-slate-100/50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900 transition cursor-pointer"
+                      >
+                        <option value="ALL">All Functions</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Product">Product</option>
+                        <option value="Commercial">Commercial</option>
+                        <option value="Operations">Operations</option>
+                      </select>
+                    </div>
+
+                    {/* Department Dropdown */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Dept:</span>
+                      <select
+                        value={departmentFilter}
+                        onChange={(e) => {
+                          setDepartmentFilter(e.target.value);
+                          setFunctionFilter('ALL');
+                          setManagerFilter('ALL');
+                        }}
+                        className="bg-slate-50 hover:bg-slate-100/50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900 transition cursor-pointer"
+                      >
+                        <option value="ALL">All Depts</option>
+                        <option value="Engineering & R&D">Engineering & R&D</option>
+                        <option value="Product Management">Product Management</option>
+                        <option value="Design Studio">Design Studio</option>
+                        <option value="Sales & Commercial">Sales & Commercial</option>
+                        <option value="Business Enablement">Business Enablement</option>
+                      </select>
+                    </div>
+
+                    {/* Manager Dropdown */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Manager:</span>
+                      <select
+                        value={managerFilter}
+                        onChange={(e) => {
+                          setManagerFilter(e.target.value);
+                          setFunctionFilter('ALL');
+                          setDepartmentFilter('ALL');
+                        }}
+                        className="bg-slate-50 hover:bg-slate-100/50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-slate-950 transition cursor-pointer"
+                      >
+                        <option value="ALL">All Managers</option>
+                        {availableManagers.map(mgr => (
+                          <option key={mgr.id} value={mgr.id}>{mgr.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                  <Filter className="w-3 h-3" /> Filters Active:
+                </span>
+                <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono">
+                  Status: {statusFilter}
+                </span>
+                {currentUser?.type === 'hr' && functionFilter !== 'ALL' && (
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono font-bold">
+                    Func: {functionFilter}
+                  </span>
+                )}
+                {currentUser?.type === 'hr' && departmentFilter !== 'ALL' && (
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono font-bold">
+                    Dept: {departmentFilter}
+                  </span>
+                )}
+                {currentUser?.type === 'hr' && managerFilter !== 'ALL' && (
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono font-bold">
+                    Team: {USERS[managerFilter]?.name || managerFilter}
+                  </span>
+                )}
+                {searchTerm && (
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono">
+                    Query: "{searchTerm}"
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-mono text-[9px] font-bold border-b border-slate-100">
+                      <th className="p-4 pl-6">ID & Employee</th>
+                      <th className="p-4">Role & Organization</th>
+                      <th className="p-4">Region & Location</th>
+                      <th className="p-4">Evaluation Status</th>
+                      <th className="p-4 pr-6 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {visibleEmployees.length > 0 ? (
+                      visibleEmployees.map(emp => (
+                        <tr key={emp.id} className="hover:bg-slate-50/50 transition">
+                          <td className="p-4 pl-6">
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={emp.avatar} 
+                                alt={emp.name} 
+                                className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                                onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/100x100/e2e8f0/475569?text=${emp.name.charAt(0)}`; }}
+                              />
+                              <div>
+                                <span className="font-mono text-slate-400 font-bold block text-[10px]">{emp.id}</span>
+                                <span className="font-bold text-slate-900 block text-sm mt-0.5">{emp.name}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className="font-semibold text-slate-700 block">{emp.role}</span>
+                            <span className="text-slate-400 text-[10px] block mt-0.5">{emp.department}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-slate-600 block">{emp.location}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className={`inline-block px-2.5 py-1 rounded-full text-[9px] uppercase font-mono tracking-widest font-bold ${
+                              emp.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                              emp.status === 'Draft' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {emp.status}
+                            </span>
+                          </td>
+                          <td className="p-4 pr-6 text-right">
+                            <button 
+                              onClick={() => handleOpenAssessment(emp)}
+                              className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-900 text-white rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition shadow-sm"
+                            >
+                              {emp.status === 'Completed' ? 'View Assessment' : 'Calibrate / Assess'}
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-slate-400">
+                          <span className="font-serif text-slate-400 text-lg block mb-1">No Matching Records Found</span>
+                          <p className="text-xs text-slate-500">Adjust active filters or search terms to view details.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* WIZARD ASSESSMENT VIEW */}
+        {selectedEmployee && (
+          <div className="space-y-8 animate-in fade-in duration-200">
+            
+            <div className="flex items-center justify-between">
+              <button 
+                onClick={() => {
+                  if (activeFormStep > 0 && !isFormReadOnly) {
+                    setEmployees(prev => prev.map(emp => {
+                      if (emp.id === selectedEmployee.id) {
+                        return {
+                          ...emp,
+                          status: 'Draft',
+                          scores: { ...tempScores },
+                          evidence: { ...tempEvidence },
+                          managerComments: tempComments
+                        };
+                      }
+                      return emp;
+                    }));
+                  }
+                  setSelectedEmployee(null);
+                  setActiveFormStep(0);
+                }}
+                className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-800 text-xs font-semibold transition"
+              >
+                <ChevronLeft className="w-4.5 h-4.5" />
+                Back to Command Directory (Auto-Saves Progress)
+              </button>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-widest">Context Panel Reference:</span>
+                {activeFormStep > 0 && (
+                  <button 
+                    onClick={() => setIsGuidelinesModalOpen(true)}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 transition"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-slate-600" />
+                    Reference Guidelines & Scale
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Persistent Candidate Information Header Card */}
+            <div className="bg-slate-900 rounded-2xl p-6 text-white border border-slate-950 shadow-md relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-slate-800 opacity-20 rounded-full filter blur-2xl transform translate-x-24 -translate-y-24 pointer-events-none"></div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                <div className="md:col-span-8 flex items-center gap-4">
+                  <img 
+                    src={selectedEmployee.avatar} 
+                    alt={selectedEmployee.name} 
+                    className="w-16 h-16 rounded-full object-cover border-2 border-slate-700 shadow-lg shrink-0"
+                    onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/150x150/1e293b/f8fafc?text=${selectedEmployee.name.charAt(0)}`; }}
+                  />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2.5">
+                      <span className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-[9px] uppercase tracking-widest font-bold text-emerald-400">
+                        Subject Directory ID: {selectedEmployee.id}
+                      </span>
+                      <span className="text-slate-400 text-xs font-mono">• Active Calibration Target</span>
+                    </div>
+                    <h2 className="text-xl md:text-2xl font-serif font-black">{selectedEmployee.name}</h2>
+                    <p className="text-slate-300 text-xs flex items-center gap-1">
+                      <Briefcase className="w-3.5 h-3.5 text-slate-400" />
+                      {selectedEmployee.role} • {selectedEmployee.department}
+                    </p>
+                    <p className="text-slate-400 text-[11px] flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-slate-400" />
+                      {selectedEmployee.location}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="md:col-span-4 bg-slate-800/80 border border-slate-700/60 p-4 rounded-xl flex flex-col justify-center">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Calibration Origin</span>
+                  <span className="text-xs text-slate-200 block font-semibold">Assessing Manager: {currentUser.name}</span>
+                  <span className="text-[10px] text-slate-400 block">{currentUser.role}</span>
+                  <span className="text-[10px] text-slate-400 block font-mono mt-2">DATE: {new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stepper Header Control */}
+            <div className="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden">
+              <div className="grid grid-cols-5 divide-x divide-slate-100 border-b border-slate-100">
+                {[
+                  { step: 0, title: 'Guidelines', subtitle: 'Verbatim Scope' },
+                  { step: 1, title: '1. Ability', subtitle: 'Cognitive Capacity' },
+                  { step: 2, title: '2. Aspiration', subtitle: 'Internal Drive' },
+                  { step: 3, title: '3. Leadership', subtitle: 'Discretionary Effort' },
+                  { step: 4, title: 'Summary', subtitle: 'Exclusions Profile' }
+                ].map((item) => {
+                  const locked = isStepLocked(item.step);
+                  const active = activeFormStep === item.step;
+                  const completed = item.step > 0 && isStepComplete(item.step);
+
+                  return (
+                    <button
+                      key={item.step}
+                      type="button"
+                      disabled={locked}
+                      onClick={() => handleStepClick(item.step)}
+                      className={`p-4 text-left relative transition ${
+                        active ? 'bg-slate-50' : 'bg-white hover:bg-slate-50/50'
+                      } ${locked ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`}
+                    >
+                      {active && <div className="absolute left-0 right-0 bottom-0 h-1 bg-slate-905"></div>}
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className={`text-[9px] font-bold uppercase tracking-widest ${
+                          active ? 'text-slate-900' : 'text-slate-400'
+                        }`}>
+                          {item.subtitle}
+                        </span>
+                        {locked ? (
+                          <Lock className="w-3 h-3 text-slate-400" />
+                        ) : completed ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <Unlock className="w-3 h-3 text-slate-400 opacity-60" />
+                        )}
+                      </div>
+                      <span className={`font-serif font-bold text-xs block ${
+                        active ? 'text-slate-955 font-black' : 'text-slate-600'
+                      }`}>
+                        {item.title}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* STEP 0: Introduction Guidelines Screen */}
+            {activeFormStep === 0 && (
+              <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-xs space-y-6 animate-in fade-in duration-200">
+                <div className="border-b border-slate-100 pb-4">
+                  <h3 className="font-serif font-bold text-slate-900 text-lg">Potential Evaluation Framework Guidelines</h3>
+                  <p className="text-[10px] text-slate-400 uppercase font-mono tracking-widest mt-0.5">Please review the calibration mandates prior to rating</p>
+                </div>
+
+                <div className="space-y-4 text-slate-600 text-xs leading-relaxed">
+                  
+                  <div className="space-y-3 p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                    <span className="font-bold text-slate-900 block uppercase tracking-wider text-[10px]">1. Purpose & Scope of Potential Calibration</span>
+                    <p>
+                      The purpose of this tool is to enable people managers to assess the potential of their team members in a structured and consistent manner. Potential can be estimated by assessing the employee on the various behavioural indicators of ability, aspiration and leadership that are given below. Manager assessment along with the evidence/justification needs to be discussed and calibrated in the leadership team to ensure a higher level of validity.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <span className="font-bold text-slate-900 block uppercase tracking-wider text-[10px]">2. Behavioral Evaluation Scale (1–4)</span>
+                    <p>
+                      Based on your observations, please evaluate the employee on each behavior using the defined scoring scale. Concrete real-world examples must be compiled as evidence for each dimension:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                        <span className="font-bold text-slate-800 block text-xs mb-1">1 = Rarely or never</span>
+                        <p className="text-[11px] text-slate-500">Rarely or never displays the behaviour</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                        <span className="font-bold text-slate-800 block text-xs mb-1">2 = Demonstrates sometimes</span>
+                        <p className="text-[11px] text-slate-500">Demonstrates the behaviour sometimes</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                        <span className="font-bold text-slate-800 block text-xs mb-1">3 = Demonstrates most of the time</span>
+                        <p className="text-[11px] text-slate-500">Demonstrates the behaviour most of the time</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                        <span className="font-bold text-slate-800 block text-xs mb-1">4 = Consistently / Role Model</span>
+                        <p className="text-[11px] text-slate-500">Demonstrates the behaviour consistently/role models the behaviour</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <span className="font-bold text-slate-900 block uppercase tracking-wider text-[10px]">3. Potential Classification Table</span>
+                    <p className="mb-2">Based on the total score on potential, employees are grouped into three categories as shown below:</p>
+                    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
+                      <table className="w-full text-left border-collapse text-[11px]">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
+                            <th className="p-3">Potential Category</th>
+                            <th className="p-3">Definition & Action Direction</th>
+                            <th className="p-3 text-center">Total Score Range</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          <tr>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 rounded font-bold text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-700 block text-center">High Potential (HiPo)</span>
+                            </td>
+                            <td className="p-3 text-slate-505">Has the potential to move 1-2 levels up. Excels across all three pillars. Eligible for rapid growth paths and executive mentorship.</td>
+                            <td className="p-3 font-mono font-bold text-slate-900 text-center">37 - 48</td>
+                          </tr>
+                          <tr>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 rounded font-bold text-[10px] bg-emerald-50 border border-emerald-100 text-emerald-700 block text-center">Promotable / Expandable</span>
+                            </td>
+                            <td className="p-3 text-slate-505">Has the potential to move 1 level up with targeted development or shift laterally to larger responsibilities.</td>
+                            <td className="p-3 font-mono font-bold text-slate-900 text-center">24 - 36</td>
+                          </tr>
+                          <tr>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 rounded font-bold text-[10px] bg-slate-100 text-slate-600 block text-center">Well-placed</span>
+                            </td>
+                            <td className="p-3 text-slate-505">Not yet ready for larger roles. Focus on job enrichment, deep specialization, and retention if the performance is good.</td>
+                            <td className="p-3 font-mono font-bold text-slate-900 text-center">Below 24</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+                    <h4 className="font-bold text-indigo-900 flex items-center gap-1.5 mb-1.5 text-xs">
+                      <AlertTriangle className="w-4 h-4 text-indigo-700" />
+                      4. Talent Progression Exclusion Rules Notice
+                    </h4>
+                    <p className="text-indigo-950 text-xs leading-relaxed">
+                      Any employee who scores below 3 on more than two indicators (across Ability, Aspiration, and Leadership) is automatically excluded from High Potential (HiPo) classification.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEPS 1-3: Evaluation Sections */}
+            {activeFormStep >= 1 && activeFormStep <= 3 && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {(() => {
+                  const sectionKey = activeFormStep === 1 ? 'ability' : activeFormStep === 2 ? 'aspiration' : 'leadership';
+                  const sectionLabel = activeFormStep === 1 ? 'Section 1: Ability' : activeFormStep === 2 ? 'Section 2: Aspiration' : 'Section 3: Leadership';
+                  const sectionSubtext = activeFormStep === 1 
+                    ? '(Cognitive capacity, agility, and emotional intelligence required for complex, higher-level roles)'
+                    : activeFormStep === 2
+                    ? '(The internal drive, motivation, and desire for higher-level responsibility, influence, and professional growth coupled with the willingness to take the necessary stretch)'
+                    : '(Discretionary effort, commitment to corporate values and brand, and the ability to lead, develop and inspire others)';
+                  
+                  const subTotalDetails = calculateSectionScore(sectionKey);
+
+                  return (
+                    <div className="space-y-6">
+                      
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-widest block font-bold">Refining Parameters</span>
+                          <h3 className="font-serif font-bold text-slate-900 text-base">{sectionLabel}</h3>
+                          <p className="text-slate-505 text-[11px] max-w-2xl mt-1 leading-relaxed">{sectionSubtext}</p>
+                        </div>
+                        <div className="bg-white border border-slate-200/60 px-5 py-3 rounded-lg text-center min-w-[130px]">
+                          <span className="text-[9px] text-slate-400 uppercase tracking-widest block font-bold font-mono">Running Subtotal</span>
+                          <span className="font-serif font-black text-slate-900 text-lg block">{subTotalDetails.sum} / {subTotalDetails.totalInSchema * 4}</span>
+                        </div>
+                      </div>
+
+                      {/* Behavioral Indicators List */}
+                      <div className="space-y-6">
+                        {SUB_DIMENSIONS[sectionKey].map((indicator) => {
+                          const currentScore = tempScores[sectionKey]?.[indicator.id];
+                          const currentEvidence = tempEvidence[indicator.id] || '';
+
+                          return (
+                            <div 
+                              key={indicator.id} 
+                              id={`indicator-card-${indicator.id}`}
+                              className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-4 hover:border-slate-200 transition-all duration-300"
+                            >
+                              
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-2.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-mono font-bold text-[10px]">
+                                    Indicator {indicator.id}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-mono uppercase font-bold">Sub-dimension & Behavior</span>
+                                </div>
+                                
+                                {/* Verbatim Scales inline display block */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-4 gap-y-1 text-[9px] text-slate-400 font-medium max-w-4xl">
+                                  <span className="whitespace-normal leading-normal"><strong className="text-slate-600 font-bold font-mono">1</strong> = Rarely or never displays the behaviour</span>
+                                  <span className="whitespace-normal leading-normal"><strong className="text-slate-600 font-bold font-mono">2</strong> = Demonstrates the behaviour sometimes</span>
+                                  <span className="whitespace-normal leading-normal"><strong className="text-slate-600 font-bold font-mono">3</strong> = Demonstrates the behaviour most of the time</span>
+                                  <span className="whitespace-normal leading-normal"><strong className="text-slate-600 font-bold font-mono">4</strong> = Demonstrates the behaviour consistently/role models the behaviour</span>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                                <div className="flex-1 space-y-1">
+                                  <h4 className="font-serif font-bold text-slate-900 text-sm">{indicator.title}</h4>
+                                  <p className="text-slate-600 text-xs leading-relaxed">{indicator.description}</p>
+                                </div>
+
+                                <div className="flex-shrink-0">
+                                  <div className="flex flex-col gap-1.5">
+                                    <span className="text-[9px] text-slate-400 uppercase font-mono font-bold tracking-widest md:text-right">
+                                      {isFormReadOnly ? "Submitted Score" : "Assign Score"}
+                                    </span>
+                                    <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-100">
+                                      {[1, 2, 3, 4].map((rating) => (
+                                        <button
+                                          key={rating}
+                                          type="button"
+                                          disabled={isFormReadOnly}
+                                          onClick={() => {
+                                            setTempScores(prev => ({
+                                              ...prev,
+                                              [sectionKey]: {
+                                                ...prev[sectionKey],
+                                                [indicator.id]: rating
+                                              }
+                                            }));
+                                          }}
+                                          className={`w-8 h-8 rounded text-xs font-mono font-bold transition flex items-center justify-center ${
+                                            currentScore === rating
+                                              ? 'bg-slate-900 text-white shadow-xs'
+                                              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/60'
+                                          } ${isFormReadOnly ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
+                                        >
+                                          {rating}
+                                        </button>
+                                      ))}
+                                    </div>
+                                    {currentScore !== undefined && (
+                                      <span className="text-[9px] font-mono text-slate-400 md:text-right mt-0.5">
+                                        Selected: {
+                                          currentScore === 1 ? 'Rarely/Never' :
+                                          currentScore === 2 ? 'Sometimes' :
+                                          currentScore === 3 ? 'Most of the time' : 'Consistently / Role Model'
+                                        }
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-1.5 pt-2 border-t border-slate-50">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block">
+                                    Evidence / Behavior Examples Observed <span className="text-rose-500">*</span>
+                                  </label>
+                                  <span className={`font-mono text-[10px] font-bold transition-colors duration-200 ${
+                                    currentEvidence.trim().length >= 100 ? 'text-slate-400' : 'text-rose-500'
+                                  }`}>
+                                    {currentEvidence.trim().length} / 100 characters min 
+                                    {currentEvidence.trim().length >= 100 ? (
+                                      <span className="text-emerald-600 font-bold ml-1">✓</span>
+                                    ) : (
+                                      <span className="text-rose-500 font-bold ml-1">✗</span>
+                                    )}
+                                  </span>
+                                </div>
+                                <textarea
+                                  value={currentEvidence}
+                                  disabled={isFormReadOnly}
+                                  onChange={(e) => {
+                                    setTempEvidence(prev => ({
+                                      ...prev,
+                                      [indicator.id]: e.target.value
+                                    }));
+                                  }}
+                                  rows={2}
+                                  placeholder={isFormReadOnly ? "No evidence submitted." : "Provide concrete behavioral examples observed to justify the selected rating (min 100 characters)..."}
+                                  className="w-full p-3 bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-lg text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-slate-900 transition disabled:opacity-80 disabled:bg-slate-50 disabled:text-slate-600"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* STEP 4: SUMMARY REVIEW */}
+            {activeFormStep === 4 && (
+              <div className="space-y-8 animate-in fade-in duration-200">
+                
+                <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-6">
+                  <div className="border-b border-slate-100 pb-4">
+                    <h3 className="font-serif font-bold text-slate-955 text-lg">Potential Metric Evaluation Aggregations</h3>
+                    <p className="text-[10px] text-slate-400 uppercase font-mono tracking-widest mt-0.5">Calculations consolidated across all evaluation behaviors</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                      <span className="text-[9px] text-slate-400 uppercase font-mono tracking-widest font-bold block">Ability (Cognitive)</span>
+                      <span className="text-2xl font-serif font-bold block text-slate-800 font-mono mt-1">{summaryCalculations.abilitySum} / 16</span>
+                    </div>
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                      <span className="text-[9px] text-slate-400 uppercase font-mono tracking-widest font-bold block">Aspiration (Drive)</span>
+                      <span className="text-2xl font-serif font-bold block text-slate-800 font-mono mt-1">{summaryCalculations.aspirationSum} / 16</span>
+                    </div>
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                      <span className="text-[9px] text-slate-400 uppercase font-mono tracking-widest font-bold block">Leadership (Advocacy)</span>
+                      <span className="text-2xl font-serif font-bold block text-slate-800 font-mono mt-1">{summaryCalculations.leadershipSum} / 16</span>
+                    </div>
+                    <div className="p-4 bg-slate-950 text-white rounded-xl text-center">
+                      <span className="text-[9px] text-slate-400 uppercase font-mono tracking-widest font-bold block">Grand Aggregate Total</span>
+                      <span className="text-2xl font-serif font-bold block text-white font-mono mt-1">{summaryCalculations.grandTotal} / 48</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-100 rounded-2xl p-8 shadow-xs space-y-6">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">System Computed Assessment</span>
+                    <h4 className="font-serif font-bold text-slate-900 text-lg">Potential Classification Profile</h4>
+                    <p className="text-xs text-slate-505 mt-1">Based on the total score on potential, employees are grouped into three categories matching official guidelines.</p>
+                  </div>
+
+                  <div className={`p-6 rounded-2xl border ${
+                    summaryCalculations.classification.category === 'High Potential (HiPo)' 
+                      ? 'bg-indigo-50 border-indigo-100 text-indigo-955'
+                      : summaryCalculations.classification.category === 'Promotable/Expandable'
+                      ? 'bg-emerald-50 border-emerald-100 text-emerald-955'
+                      : 'bg-slate-50 border-slate-100 text-slate-700'
+                  }`}>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 block mb-1">Official Potential Classification</span>
+                        <span className="text-2xl font-serif font-black block leading-none">
+                          {summaryCalculations.classification.category}
+                        </span>
+                      </div>
+                      <div className="bg-white/80 border border-slate-200/60 px-5 py-3 rounded-xl text-center min-w-[130px]">
+                        <span className="text-[9px] text-slate-400 uppercase tracking-widest block font-bold font-mono">Grand Total Score</span>
+                        <span className="font-mono text-slate-900 font-black text-xl">
+                          {summaryCalculations.grandTotal} / 48
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs leading-relaxed mt-4 pt-4 border-t border-slate-200/40">
+                      {summaryCalculations.classification.description}
+                    </p>
+
+                    {summaryCalculations.classification.forcedExclusion && (
+                      <div className="mt-4 p-4 bg-indigo-100/40 border border-indigo-200 text-indigo-955 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-[11px] uppercase tracking-wide flex items-center gap-1">
+                            <AlertTriangle className="w-4 h-4 text-indigo-700" /> High Potential (HiPo) Exclusion Applied:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsLowScoreModalOpen(true)}
+                            className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-lg text-[10px] font-bold shadow-xs transition cursor-pointer"
+                          >
+                            Analyze Exclusion Detail
+                          </button>
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-indigo-900">
+                          The candidate scored below rating 3 on **{summaryCalculations.lowScoresCount}** individual sub-dimensions. Per official rules, an employee with ratings below 3 on more than 2 sub-dimensions cannot be classified as High Potential, regardless of total score.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Dynamic checklist referencing layout */}
+                  <div className="border-t border-slate-100 pt-6">
+                    <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-3">Fidelity Assessment Checklist</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-slate-600 font-medium">All 12 dimensions assessed:</span>
+                        <span className="font-bold text-slate-900 flex items-center gap-1 font-mono">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" /> 12/12 Completed
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-slate-600 font-medium">Sub-dimensions scoring below Rating 3:</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-mono font-bold px-2.5 py-0.5 rounded ${
+                            summaryCalculations.lowScoresCount > 2 ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {summaryCalculations.lowScoresCount} detected
+                          </span>
+                          {summaryCalculations.lowScoresCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setIsLowScoreModalOpen(true)}
+                              className="px-2.5 py-0.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded text-[10px] font-bold shadow-xs transition cursor-pointer"
+                            >
+                              View Details
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-4">
+                  <div className="border-b border-slate-100 pb-2">
+                    <h4 className="font-serif font-bold text-slate-900 text-sm">Section 4: Manager Comments & Calibration Audit</h4>
+                    <p className="text-[10px] text-slate-400 leading-relaxed">Required: Highlight potential derailers, succession limits, and calibration alignment notes.</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block">
+                        Calibration Assessment Comments <span className="text-rose-500">*</span>
+                      </label>
+                      <span className={`font-mono text-[10px] font-bold transition-colors duration-200 ${
+                        tempComments.trim().length >= 100 ? 'text-slate-400' : 'text-rose-500'
+                      }`}>
+                        {tempComments.trim().length} / 100 characters min 
+                        {tempComments.trim().length >= 100 ? (
+                          <span className="text-emerald-600 font-bold ml-1">✓</span>
+                        ) : (
+                          <span className="text-rose-500 font-bold ml-1">✗</span>
+                        )}
+                      </span>
+                    </div>
+                    <textarea
+                      value={tempComments}
+                      disabled={isFormReadOnly}
+                      onChange={(e) => {
+                        if (e.target.value.trim().length < 1000) {
+                          setTempComments(e.target.value);
+                        }
+                      }}
+                      rows={4}
+                      placeholder={isFormReadOnly ? "No additional manager comments provided." : "Discuss potential derailers, developmental action plans, or context behind the indicators rated (min 100 characters)..."}
+                      className="w-full p-3 bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-lg text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-slate-900 transition disabled:opacity-80 disabled:bg-slate-50 disabled:text-slate-600"
+                    />
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* Wizard Controls Footer */}
+            <div className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between gap-4 shadow-xs">
+              
+              <div>
+                {activeFormStep > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => navigateToStep(Math.max(0, activeFormStep - 1))}
+                    className="px-4 py-2 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold inline-flex items-center gap-1 transition"
+                  >
+                    <ChevronLeft className="w-4.5 h-4.5" />
+                    Previous Section
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {!isFormReadOnly && (
+                  <button
+                    type="button"
+                    onClick={handleSaveDraft}
+                    className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-bold transition"
+                  >
+                    Save Progress Draft
+                  </button>
+                )}
+                <span className="text-[10px] text-slate-400 font-mono hidden md:inline">
+                  Step {activeFormStep + 1} of 5
+                </span>
+              </div>
+
+              <div>
+                {activeFormStep < 4 ? (
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="px-5 py-2.5 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1 shadow-md transition"
+                  >
+                    {activeFormStep === 0 ? "Agree & Start Assessment" : "Next Section"}
+                    <ChevronRight className="w-4.5 h-4.5" />
+                  </button>
+                ) : (
+                  isFormReadOnly ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedEmployee(null);
+                        triggerToast("Exited calibration view");
+                      }}
+                      className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition shadow-md"
+                    >
+                      Close Assessment View
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSubmitAssessment}
+                      className="px-5 py-2 bg-slate-955 hover:bg-slate-900 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition"
+                    >
+                      <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400" />
+                      Submit & Lock Calibration
+                    </button>
+                  )
+                )}
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {currentTab === 'reports' && currentUser.type === 'hr' && (
+          <div className="space-y-8 animate-in fade-in duration-200">
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h1 className="text-2xl font-serif font-bold text-slate-900">Reports, Analytics & Calibration Dashboard</h1>
+                <p className="text-slate-500 text-xs mt-1">
+                  Access team potential statistics, calibration distribution charts, and audit logs.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleExportCSV}
+                  className="px-4 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-bold text-slate-700 flex items-center gap-1.5 transition shadow-xs"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  Export Calibration Log
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              
+              {/* Distribution Line Chart panel with dynamic selector */}
+              <div className="lg:col-span-8 bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-6">
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Succession Analytics</span>
+                    <h4 className="font-serif font-bold text-slate-900 text-base">Talent Potential Distribution Curve</h4>
+                  </div>
+                  
+                  {/* Real-time Dynamic Manager Filter */}
+                  <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider pl-1.5">Manager Filter:</span>
+                    <select
+                      value={reportsManagerFilter}
+                      onChange={(e) => setReportsManagerFilter(e.target.value)}
+                      className="bg-white hover:bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900 transition cursor-pointer"
+                    >
+                      <option value="ALL">All Teams / Managers</option>
+                      {availableManagers.map(mgr => (
+                        <option key={mgr.id} value={mgr.id}>{mgr.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* High-Fidelity SVG Line Chart Visualization without Stretched Warp Fonts */}
+                <div className="bg-slate-50/40 p-6 rounded-2xl border border-slate-100 flex flex-col justify-between min-h-[300px]">
+                  
+                  <div className="relative w-full h-[180px] mt-2">
+                    <svg className="w-full h-full overflow-visible" viewBox="0 0 500 150">
+                      <defs>
+                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366f1" stopOpacity="0.15" />
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                        </linearGradient>
+                        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+                          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#6366f1" floodOpacity="0.25"/>
+                        </filter>
+                      </defs>
+
+                      {/* Horizontal Helper Gridlines */}
+                      <line x1="40" y1="30" x2="460" y2="30" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                      <line x1="40" y1="85" x2="460" y2="85" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                      <line x1="40" y1="140" x2="460" y2="140" stroke="#e2e8f0" strokeWidth="1.5" />
+
+                      {/* Vertical Grid Grounding Lines */}
+                      {lineChartData.points.map((pt, i) => (
+                        <line key={`drop-${i}`} x1={pt.x} y1={pt.y} x2={pt.x} y2="140" stroke="#e2e8f0" strokeWidth="1.2" strokeDasharray="3 3" />
+                      ))}
+
+                      {/* Area Chart Gradient Fill */}
+                      <path d={lineChartData.areaD} fill="url(#chartGradient)" />
+
+                      {/* Connection Line with dynamic smooth curve styling */}
+                      <path d={lineChartData.pathD} fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" filter="url(#shadow)" />
+
+                      {/* Plot Circles with Rings */}
+                      {lineChartData.points.map((pt, i) => (
+                        <g key={i}>
+                          <circle cx={pt.x} cy={pt.y} r="8" fill="#ffffff" stroke={pt.color} strokeWidth="3.5" />
+                          <circle cx={pt.x} cy={pt.y} r="3" fill={pt.color} />
+                          
+                          {/* Floating Count Pill Capsule directly centered above the point */}
+                          <g transform={`translate(${pt.x - 14}, ${pt.y - 28})`}>
+                            <rect width="28" height="17" rx="4" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1.5" />
+                            <text x="14" y="11" fill="#1e293b" fontSize="9" fontWeight="950" textAnchor="middle" fontFamily="monospace">
+                              {pt.value}
+                            </text>
+                          </g>
+                        </g>
+                      ))}
+                    </svg>
+
+                    {/* Unwarped HTML Text Labels Rendered Outside the SVG Grid to Avoid Squishing */}
+                    <div className="absolute left-0 right-0 bottom-1 flex justify-between px-[45px] text-xs pointer-events-none">
+                      {lineChartData.points.map((pt, i) => (
+                        <span 
+                          key={`html-lbl-${i}`} 
+                          className="font-bold tracking-tight" 
+                          style={{ color: pt.color, transform: 'translateX(-50%)', marginLeft: i === 0 ? '25px' : i === 2 ? '-25px' : '0px' }}
+                        >
+                          {pt.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs pt-4 border-t border-slate-100/60 mt-4">
+                    <p className="text-slate-500 leading-relaxed max-w-lg">
+                      This line chart represents the computed potential curve. All metrics adapt on-the-fly to your selection.
+                    </p>
+                    
+                    {/* Live calculated ratios display */}
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="inline-flex items-center gap-1 font-mono font-bold text-[10px] text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+                        • HiPo Ratio: {reportDistributionCounts.hipoRatio}%
+                      </span>
+                      <span className="inline-flex items-center gap-1 font-mono font-bold text-[10px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                        • Promotable: {reportDistributionCounts.promotableRatio}%
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Geographic hub density ratios panel */}
+              <div className="lg:col-span-4 bg-white border border-slate-100 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Location Ratios</span>
+                  <h4 className="font-serif font-bold text-slate-900 text-base">Indian GCC Hub Density</h4>
+                </div>
+
+                <div className="space-y-4 my-6">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-700">Bengaluru ORR Campus</span>
+                      <span className="font-mono text-slate-500">4 Resources</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className="bg-slate-900 h-full w-1/2"></div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-700">Mumbai BKC Head Office</span>
+                      <span className="font-mono text-slate-500">2 Resources</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className="bg-slate-900 h-full w-[25%]"></div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-700">Hyderabad HITEC & Pune</span>
+                      <span className="font-mono text-slate-500">2 Resources</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div className="bg-slate-900 h-full w-[25%]"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-lg text-[11px] text-slate-500 leading-relaxed border border-slate-100/50">
+                  Regional allocation complies directly with the organizational footprint roadmap set by leadership governance.
+                </div>
+              </div>
+            </div>
+
+            {/* HR Auditing Registry table */}
+            <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
+              <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-serif font-bold text-slate-900 text-sm">Talent Potential Registry Database</h4>
+                  <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest mt-0.5">Live read access covering all operational units</p>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Category Filter Dropdown */}
+                  <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider pl-1.5">Category Filter:</span>
+                    <select
+                      value={reportsCategoryFilter}
+                      onChange={(e) => setReportsCategoryFilter(e.target.value)}
+                      className="bg-white hover:bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900 transition cursor-pointer"
+                    >
+                      <option value="ALL">All Categories</option>
+                      <option value="High Potential (HiPo)">High Potential (HiPo)</option>
+                      <option value="Promotable/Expandable">Promotable / Expandable</option>
+                      <option value="Well-placed">Well-placed</option>
+                      <option value="HIPO_EXCLUSION">HiPo Exclusions (Rule Applied)</option>
+                    </select>
+                  </div>
+
+                  {reportsManagerFilter !== 'ALL' && (
+                    <span className="px-3 py-1.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold font-mono">
+                      Filtered Team: {USERS[reportsManagerFilter]?.name || reportsManagerFilter}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-mono text-[9px] font-bold border-b border-slate-100">
+                      <th className="p-4 pl-6">ID</th>
+                      <th className="p-4">Employee</th>
+                      <th className="p-4">Department & Region</th>
+                      <th className="p-4">Assigned Line Manager</th>
+                      <th className="p-4">Evaluation Status</th>
+                      <th className="p-4">Potential Score</th>
+                      <th className="p-4 pr-6 text-right font-sans">Corporate Grouping</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {employees
+                      .filter(emp => reportsManagerFilter === 'ALL' || emp.managerId === reportsManagerFilter)
+                      .filter(emp => {
+                        if (reportsCategoryFilter === 'ALL') return true;
+                        if (emp.status === 'Pending') return false;
+                        const currentScoresTemp = {
+                          ability: emp.scores.ability,
+                          aspiration: emp.scores.aspiration,
+                          leadership: emp.scores.leadership
+                        };
+                        const ab = calculateSectionScore('ability', currentScoresTemp);
+                        const asp = calculateSectionScore('aspiration', currentScoresTemp);
+                        const lead = calculateSectionScore('leadership', currentScoresTemp);
+                        const grandTotal = ab.sum + asp.sum + lead.sum;
+
+                        let lowCount = 0;
+                        const allScoresFlat = { ...emp.scores.ability, ...emp.scores.aspiration, ...emp.scores.leadership };
+                        Object.values(allScoresFlat).forEach(val => {
+                          if (val !== undefined && val !== null && Number(val) < 3) {
+                            lowCount++;
+                          }
+                        });
+
+                        const classification = getTalentClassification(grandTotal, lowCount);
+                        
+                        if (reportsCategoryFilter === 'HIPO_EXCLUSION') {
+                          return classification.forcedExclusion === true;
+                        }
+                        return classification.category === reportsCategoryFilter;
+                      })
+                      .map(emp => {
+                        const m = USERS[emp.managerId] || { name: emp.managerId };
+                        
+                        const currentScoresTemp = {
+                          ability: emp.scores.ability,
+                          aspiration: emp.scores.aspiration,
+                          leadership: emp.scores.leadership
+                        };
+                        const ab = calculateSectionScore('ability', currentScoresTemp);
+                        const asp = calculateSectionScore('aspiration', currentScoresTemp);
+                        const lead = calculateSectionScore('leadership', currentScoresTemp);
+                        const grandTotal = ab.sum + asp.sum + lead.sum;
+
+                        let lowCount = 0;
+                        const allScoresFlat = { ...emp.scores.ability, ...emp.scores.aspiration, ...emp.scores.leadership };
+                        Object.values(allScoresFlat).forEach(val => {
+                          if (val !== undefined && val !== null && Number(val) < 3) {
+                            lowCount++;
+                          }
+                        });
+
+                        const classification = getTalentClassification(grandTotal, lowCount);
+
+                        return (
+                          <tr key={emp.id} className="hover:bg-slate-50/50 transition">
+                            <td className="p-4 pl-6 font-mono text-slate-400 font-bold">{emp.id}</td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                <img 
+                                  src={emp.avatar} 
+                                  alt={emp.name} 
+                                  className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
+                                  onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/100x100/e2e8f0/475569?text=${emp.name.charAt(0)}`; }}
+                                />
+                                <div>
+                                  <span className="font-bold text-slate-800 block text-xs">{emp.name}</span>
+                                  <span className="text-slate-400 block text-[10px] mt-0.5">{emp.role}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <span className="text-slate-600 block">{emp.department}</span>
+                              <span className="text-slate-400 block text-[10px] mt-0.5">{emp.location}</span>
+                            </td>
+                            <td className="p-4 font-medium text-slate-700">{m.name}</td>
+                            <td className="p-4">
+                              <span className={`inline-block px-2 py-0.5 rounded text-[9px] uppercase font-mono tracking-widest font-bold ${
+                                emp.status === 'Completed' ? 'bg-emerald-50 text-emerald-700' :
+                                emp.status === 'Draft' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {emp.status}
+                              </span>
+                            </td>
+                            <td className="p-4 font-mono font-bold text-slate-900">
+                              {emp.status !== 'Pending' ? grandTotal + " / 48" : '—'}
+                            </td>
+                            <td className="p-4 pr-6 text-right">
+                              {emp.status !== 'Pending' ? (
+                                <span className={`inline-block px-2 py-1 border rounded text-[10px] font-bold ${
+                                  classification.forcedExclusion
+                                    ? 'bg-rose-50 border-rose-100 text-rose-800'
+                                    : classification.category === 'High Potential (HiPo)' 
+                                    ? 'bg-indigo-50 border-indigo-100 text-indigo-950'
+                                    : classification.category === 'Promotable/Expandable'
+                                    ? 'bg-emerald-50 border-emerald-100 text-emerald-950'
+                                    : 'bg-slate-50 border-slate-100 text-slate-600'
+                                }`}>
+                                  {classification.forcedExclusion ? 'HiPo Exclusion Applied' : classification.category}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 italic">Awaiting Scores</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+      </main>
+
+      {/* ADMIN CREATE / EDIT MODAL */}
+      {isAdminCreateOpen && currentUser.type === 'admin' && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-xl w-full max-h-[90vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-rose-500" />
+                <h3 className="font-serif font-bold text-slate-900 text-base">
+                  {adminSelectedEmp ? "Edit Employee Registration" : "Add New Employee Profile"}
+                </h3>
+              </div>
+              <button onClick={() => setIsAdminCreateOpen(false)} className="text-slate-400 hover:text-slate-600 bg-slate-200/50 hover:bg-slate-200 p-1.5 rounded-lg transition">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveAdminEmployee} className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Employee ID *</label>
+                  <input 
+                    type="text"
+                    required
+                    disabled={!!adminSelectedEmp}
+                    value={adminForm.id}
+                    onChange={(e) => setAdminForm({...adminForm, id: e.target.value})}
+                    placeholder="EMP015"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Employee Name *</label>
+                  <input 
+                    type="text"
+                    required
+                    value={adminForm.name}
+                    onChange={(e) => setAdminForm({...adminForm, name: e.target.value})}
+                    placeholder="John Doe"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Employee Email</label>
+                  <input 
+                    type="email"
+                    value={adminForm.email}
+                    onChange={(e) => setAdminForm({...adminForm, email: e.target.value})}
+                    placeholder="john.doe@zuari.com"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Designation (Role) *</label>
+                  <input 
+                    type="text"
+                    required
+                    value={adminForm.role}
+                    onChange={(e) => setAdminForm({...adminForm, role: e.target.value})}
+                    placeholder="Senior Consultant"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Impact Level</label>
+                  <input 
+                    type="text"
+                    value={adminForm.impactLevel}
+                    onChange={(e) => setAdminForm({...adminForm, impactLevel: e.target.value})}
+                    placeholder="e.g. High, Critical, Medium, Low, Custom..."
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Employee Entity</label>
+                  <input 
+                    type="text"
+                    value={adminForm.entity}
+                    onChange={(e) => setAdminForm({...adminForm, entity: e.target.value})}
+                    placeholder="Zuari Industries Ltd"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Manager ID</label>
+                  <select
+                    value={adminForm.managerId}
+                    onChange={(e) => setAdminForm({...adminForm, managerId: e.target.value})}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-955 focus:bg-white text-xs cursor-pointer"
+                  >
+                    {Object.values(USERS).filter(u => u.type === 'manager').map(mgr => (
+                      <option key={mgr.id} value={mgr.id}>{mgr.name} ({mgr.id})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Manager Email</label>
+                  <input 
+                    type="email"
+                    value={adminForm.managerEmail}
+                    onChange={(e) => setAdminForm({...adminForm, managerEmail: e.target.value})}
+                    placeholder="sandeep.sharma@zuari.com"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Department</label>
+                  <select
+                    value={adminForm.department}
+                    onChange={(e) => setAdminForm({...adminForm, department: e.target.value})}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-955 focus:bg-white text-xs cursor-pointer"
+                  >
+                    <option value="Engineering & R&D">Engineering & R&D</option>
+                    <option value="Product Management">Product Management</option>
+                    <option value="Design Studio">Design Studio</option>
+                    <option value="Sales & Commercial">Sales & Commercial</option>
+                    <option value="Business Enablement">Business Enablement</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold block mb-1">Location</label>
+                  <input 
+                    type="text"
+                    value={adminForm.location}
+                    onChange={(e) => setAdminForm({...adminForm, location: e.target.value})}
+                    placeholder="Bengaluru Outer Ring Road CoE"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50 -mx-6 -mb-6 p-4 rounded-b-2xl">
+                <button 
+                  type="button" 
+                  onClick={() => setIsAdminCreateOpen(false)}
+                  className="px-4 py-2 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold transition border border-slate-200 bg-white"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 bg-slate-950 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition shadow-md"
+                >
+                  {adminSelectedEmp ? "Save Changes" : "Register Employee"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADMIN BULK UPLOAD SLIDE OVER MODAL */}
+      {isAdminBulkOpen && currentUser.type === 'admin' && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-2xl w-full max-h-[85vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Upload className="w-5 h-5 text-rose-500" />
+                <h3 className="font-serif font-bold text-slate-900 text-base">Bulk Upload CSV / Raw Text Data</h3>
+              </div>
+              <button onClick={() => setIsAdminBulkOpen(false)} className="text-slate-400 hover:text-slate-600 bg-slate-200/50 hover:bg-slate-200 p-1.5 rounded-lg transition">✕</button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-slate-600">
+                <span className="font-bold text-slate-900 block text-[10px] uppercase font-mono tracking-wide">Pasting Instructions:</span>
+                <p>Paste comma-separated (CSV) or tab-separated (TSV) rows directly. If the Employee ID matches an existing record, the system will update it. Otherwise, a new record is added.</p>
+                <span className="font-bold text-slate-900 block text-[10px] uppercase font-mono tracking-wide mt-3">Expected column sequence (No Quotes Required):</span>
+                <code className="block bg-slate-200 p-2 rounded text-[10px] text-slate-800 break-all select-all">
+                  Emp ID, Employee Name, Employee Email, Designation, Impact Level, Employee Entity, Manager ID, Manager Email, Location, Department
+                </code>
+              </div>
+
+              <textarea 
+                rows={10}
+                value={adminBulkText}
+                onChange={(e) => setAdminBulkText(e.target.value)}
+                placeholder="EMP015, John Doe, john.doe@zuari.com, Senior Developer, High, Zuari Industries Ltd, MGR001, sandeep.sharma@zuari.com, Bengaluru ORR CoE, Engineering & R&D"
+                className="w-full p-3 font-mono text-[11px] bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 transition"
+              />
+
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminBulkText("EMP015, Jane Miller, jane.miller@zuari.com, Senior Project Lead, Critical, Zuari Industries Ltd, MGR002, divya.nair@zuari.com, Mumbai BKC Head Office, Business Enablement\nEMP016, Amit Singh, amit.singh@zuari.com, Software Specialist, Medium, Adventz Corporate CoE, MGR001, sandeep.sharma@zuari.com, Hyderabad HITEC City, Engineering & R&D");
+                  }}
+                  className="text-xs text-rose-600 hover:text-rose-800 hover:underline font-semibold"
+                >
+                  Load Sample Paste Rows
+                </button>
+                <span className="text-[10px] text-slate-400">Total lines: {adminBulkText.split('\n').filter(Boolean).length}</span>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2 rounded-b-2xl">
+              <button 
+                type="button" 
+                onClick={() => setIsAdminBulkOpen(false)}
+                className="px-4 py-1.5 hover:bg-slate-100 text-slate-700 border border-slate-200 bg-white rounded-lg text-xs font-bold transition"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={handleBulkCSVUpload}
+                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition shadow-md"
+              >
+                Parse & Upload Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isGuidelinesModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-2xl w-full max-h-[85vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <BookOpen className="w-5 h-5 text-slate-800" />
+                <div>
+                  <h3 className="font-serif font-bold text-slate-900 text-base">Potential Assessment Guidelines</h3>
+                  <p className="text-[10px] text-slate-400 uppercase font-mono tracking-widest text-left">Calibration Framework V2.0</p>
+                </div>
+              </div>
+              <button onClick={() => setIsGuidelinesModalOpen(false)} className="text-slate-400 hover:text-slate-600 bg-slate-200/50 hover:bg-slate-200 p-1.5 rounded-lg transition">✕</button>
+            </div>
+            
+            <div className="p-6 space-y-5 overflow-y-auto text-xs leading-relaxed text-slate-600 text-left">
+              <div>
+                <h4 className="font-bold text-slate-900 mb-1.5">1. Purpose & Scope of Potential Calibration</h4>
+                <p>The purpose of this tool is to enable people managers to assess the potential of their team members in a structured and consistent manner. Potential can be estimated by assessing the employee on the various behavioural indicators of ability, aspiration and leadership that are given below.</p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-900 mb-1.5">2. Behavioral Evaluation Scale (1–4)</h4>
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="font-bold text-slate-800 block text-[11px] mb-0.5">Rating 1: Rarely or never</span>
+                    <span className="text-slate-500 block text-[10px]">Rarely or never displays the behaviour.</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="font-bold text-slate-800 block text-[11px] mb-0.5">Rating 2: Sometimes</span>
+                    <span className="text-slate-500 block text-[10px]">Demonstrates the behaviour sometimes.</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="font-bold text-slate-800 block text-[11px] mb-0.5">Rating 3: Most of the time</span>
+                    <span className="text-slate-500 block text-[10px]">Demonstrates the behaviour most of the time.</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="font-bold text-slate-800 block text-[11px] mb-0.5">Rating 4: Consistently</span>
+                    <span className="text-slate-500 block text-[10px]">Demonstrates the behaviour consistently/role models.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+                <h4 className="font-bold text-indigo-900 flex items-center gap-1.5 mb-1.5 text-xs">
+                  <AlertTriangle className="w-4 h-4 text-indigo-700" />
+                  Talent Progression Exclusion Rules
+                </h4>
+                <p className="text-indigo-955 text-[11px] leading-relaxed">
+                  Any employee who scores below 3 on more than two indicators (across Ability, Aspiration, and Leadership) is automatically excluded from High Potential (HiPo) classification.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button onClick={() => setIsGuidelinesModalOpen(false)} className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isLowScoreModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-4xl w-full max-h-[85vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+              <div className="text-left">
+                <h3 className="font-serif font-bold text-slate-900 text-base">Indicators Scoring Below Rating 3</h3>
+                <p className="text-[10px] text-slate-400 uppercase font-mono tracking-widest mt-0.5">Detailed inspection sheet for behavior evidence</p>
+              </div>
+              <button onClick={() => setIsLowScoreModalOpen(false)} className="text-slate-400 hover:text-slate-600 bg-slate-200/50 hover:bg-slate-200 p-1.5 rounded-lg transition">✕</button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto text-left">
+              {lowScoreRecordsList.length > 0 ? (
+                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
+                        <th className="p-3 w-1/6">Section</th>
+                        <th className="p-3 w-1/4">Subdimension</th>
+                        <th className="p-3 w-1/12 text-center">Rating</th>
+                        <th className="p-3">Evidence / Justification Text</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {lowScoreRecordsList.map((item) => (
+                        <tr key={item.id} className={`${item.rating < 2 ? 'bg-rose-50/30' : 'hover:bg-slate-50/50'}`}>
+                          <td className="p-3"><span className="font-semibold text-slate-700">{item.section}</span></td>
+                          <td className="p-3">
+                            <div className="space-y-1">
+                              <span className="inline-block px-1.5 py-0.5 bg-slate-100 rounded text-[9px] font-mono font-bold text-slate-600">Indicator {item.id}</span>
+                              <span className="block font-medium text-slate-900">{item.title}</span>
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className="inline-block w-7 h-7 leading-7 rounded-lg font-mono font-bold text-xs bg-amber-50 text-amber-700 border border-amber-200">{item.rating}</span>
+                          </td>
+                          <td className="p-3 text-slate-600 leading-relaxed text-[11px] italic">"{item.evidence}"</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-slate-400">
+                  <span className="font-serif text-slate-400 text-base block mb-1">No indicators rated under 3</span>
+                  <p className="text-xs text-slate-500">All behavioral dimensions for this employee are rated 3 or 4.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button onClick={() => setIsLowScoreModalOpen(false)} className="px-4 py-1.5 bg-[#0f172a] hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

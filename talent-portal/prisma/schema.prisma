@@ -1,0 +1,166 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  HR
+  MANAGER
+}
+
+enum AssessmentStatus {
+  PENDING
+  DRAFT
+  COMPLETED
+}
+
+// ─────────────────────────────────────────────────────
+// USER (Portal login accounts: Admin, HR, Manager)
+// ─────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  azureOid      String?   @unique // Azure AD Object ID (set after first SSO login)
+  email         String    @unique
+  name          String
+  role          UserRole
+  designation   String?   // e.g. "Senior Engineering Director"
+  department    String?
+  location      String?
+  avatarInitial String?   // Pre-computed first letter
+  isActive      Boolean   @default(true)
+  managerId     String?   // If this user is a manager, their Employee-level manager id for reference
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdBy     String?
+  updatedBy     String?
+
+  // Relations
+  assessmentsSubmitted Assessment[]
+  auditLogs            AuditLog[]
+  drafts               Draft[]
+
+  @@index([email])
+  @@index([role])
+}
+
+// ─────────────────────────────────────────────────────
+// EMPLOYEE (People being assessed)
+// ─────────────────────────────────────────────────────
+
+model Employee {
+  id            String   @id            // EMP001 format
+  name          String
+  email         String   @unique
+  designation   String                  // "role" field in existing frontend
+  impactLevel   String                  // High / Critical / Medium / Low / custom
+  entity        String                  // Zuari Industries Ltd, Adventz Corporate CoE, etc.
+  department    String
+  location      String                  // Dynamic — whatever is entered
+  managerId     String                  // References User.id for a manager
+  managerEmail  String
+  hrbpName      String?                 // HRBP assigned to this employee
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdBy     String?
+  updatedBy     String?
+
+  // Relations
+  assessment    Assessment?
+
+  @@index([managerId])
+  @@index([department])
+  @@index([location])
+  @@index([isActive])
+}
+
+// ─────────────────────────────────────────────────────
+// ASSESSMENT (One per employee per cycle)
+// ─────────────────────────────────────────────────────
+
+model Assessment {
+  id              String           @id @default(cuid())
+  employeeId      String           @unique
+  cycle           String           @default("FY2026")
+  status          AssessmentStatus @default(PENDING)
+
+  // Scores stored as JSON: { ability: { "1.1": 3, ... }, aspiration: {...}, leadership: {...} }
+  scores          Json             @default("{}")
+
+  // Evidence texts: { "1.1": "...", "1.2": "...", ... }
+  evidence        Json             @default("{}")
+
+  managerComments String?          @db.Text
+  submittedById   String?
+  submittedAt     DateTime?
+  lockedAt        DateTime?
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdBy       String?
+  updatedBy       String?
+
+  // Relations
+  employee        Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  submittedByUser User?            @relation(fields: [submittedById], references: [id])
+  drafts          Draft[]
+  auditLogs       AuditLog[]
+
+  @@index([status])
+  @@index([employeeId])
+  @@index([cycle])
+}
+
+// ─────────────────────────────────────────────────────
+// DRAFT (Versioned autosave snapshots)
+// ─────────────────────────────────────────────────────
+
+model Draft {
+  id              String     @id @default(cuid())
+  assessmentId    String
+  scores          Json
+  evidence        Json
+  managerComments String?    @db.Text
+  savedAt         DateTime   @default(now())
+  savedById       String
+
+  // Relations
+  assessment      Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  savedByUser     User       @relation(fields: [savedById], references: [id])
+
+  @@index([assessmentId])
+  @@index([savedAt])
+}
+
+// ─────────────────────────────────────────────────────
+// AUDIT LOG (Simple event logging)
+// ─────────────────────────────────────────────────────
+
+model AuditLog {
+  id            String     @id @default(cuid())
+  entityType    String     // "Assessment" | "Employee" | "User"
+  entityId      String
+  action        String     // "SUBMIT" | "SAVE_DRAFT" | "CREATE" | "UPDATE" | "DELETE"
+  changedById   String
+  changedAt     DateTime   @default(now())
+  metadata      Json?      // Any extra context (employee name, score summary, etc.)
+
+  // Relations
+  changedBy     User       @relation(fields: [changedById], references: [id])
+  assessment    Assessment? @relation(fields: [entityId], references: [id], map: "AuditLog_assessmentId_fkey")
+
+  @@index([entityType, entityId])
+  @@index([changedAt])
+}
