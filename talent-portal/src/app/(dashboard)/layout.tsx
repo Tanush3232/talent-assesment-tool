@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, FileSpreadsheet, Settings } from "lucide-react";
+import { LogOut, LayoutDashboard, FileSpreadsheet, Settings, BarChart2 } from "lucide-react";
 
 export default async function DashboardLayout({
   children,
@@ -61,6 +61,10 @@ export default async function DashboardLayout({
                   <Link href="/reports" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 rounded-md hover:bg-slate-100 hover:text-slate-900 transition-colors">
                     <LayoutDashboard className="w-4 h-4" />
                     All teams status
+                  </Link>
+                  <Link href="/reports/analytics" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 rounded-md hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <BarChart2 className="w-4 h-4" />
+                    Reports &amp; Analytics
                   </Link>
                   {user.role === "ADMIN" && (
                     <Link href="/admin" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 rounded-md hover:bg-slate-100 hover:text-slate-900 transition-colors">
