@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Users, Clock, FileEdit, CheckCircle2, Search, ArrowRight } from "lucide-react";
+import { Users, Clock, FileEdit, CheckCircle2, Search, ArrowRight, Play, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import ManagerOnboardingModal from "@/components/onboarding/ManagerOnboardingModal";
@@ -34,6 +34,7 @@ export default function ManagerDashboardClient({
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [tourKey, setTourKey] = useState(0);
 
   const total = employees.length;
   const pending = employees.filter(e => !e.assessment || e.assessment.status === "PENDING").length;
@@ -60,74 +61,88 @@ export default function ManagerDashboardClient({
 
   return (
     <>
-      <ManagerOnboardingModal managerName={managerName} />
+      <ManagerOnboardingModal key={tourKey} managerName={managerName} />
       
       <div className="space-y-6 animate-in fade-in duration-500">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">My Direct Reports</h1>
-          <p className="text-slate-500 mt-1 text-sm">
-            Active evaluation pipeline
-            {managerDept ? <> for <span className="font-semibold text-zuari-blue">{managerDept}</span></> : ""}.
-          </p>
+        <div className="flex items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">My Direct Reports</h1>
+          </div>
+          <button
+            onClick={() => {
+              sessionStorage.removeItem("manager_tour_seen");
+              setTourKey(k => k + 1);
+            }}
+            className="flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-colors border border-slate-200 shadow-sm shrink-0"
+          >
+            <Play className="w-3.5 h-3.5 text-zuari-blue fill-zuari-blue" />
+            Product Tour
+          </button>
+        </div>
+
+        {/* Info filter instruction */}
+        <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium select-none">
+          <Info className="w-3.5 h-3.5 text-slate-400" />
+          <span>Click the boxes to filter the team roster table below.</span>
         </div>
 
         {/* Stat Filter Cards */}
         <div data-tour="stat-cards" className="grid grid-cols-4 gap-4">
           <button
             onClick={() => setStatusFilter("ALL")}
-            className={`text-left p-5 rounded-xl border-2 transition-all ${statusFilter === "ALL" ? "bg-slate-900 border-slate-900 text-white shadow-lg" : "bg-white border-slate-200 hover:border-slate-300"}`}
+            className={`text-left p-4 rounded-xl border-2 transition-all ${statusFilter === "ALL" ? "bg-slate-900 border-slate-900 text-white shadow-md" : "bg-white border-slate-200 hover:border-slate-300"}`}
           >
             <div className="flex items-center justify-between mb-2">
-              <p className={`text-xs font-bold tracking-widest uppercase ${statusFilter === "ALL" ? "text-slate-400" : "text-slate-500"}`}>Total Directs</p>
-              <Users className="w-5 h-5 text-slate-400" />
+              <p className={`text-[10px] font-bold tracking-widest uppercase ${statusFilter === "ALL" ? "text-slate-400" : "text-slate-500"}`}>Total Directs</p>
+              <Users className="w-4 h-4 text-slate-400" />
             </div>
-            <div className={`text-4xl font-black ${statusFilter === "ALL" ? "text-white" : "text-slate-900"}`}>{total}</div>
+            <div className={`text-3xl font-extrabold ${statusFilter === "ALL" ? "text-white" : "text-slate-900"}`}>{total}</div>
           </button>
 
           <button
             onClick={() => setStatusFilter(statusFilter === "PENDING" ? "ALL" : "PENDING")}
-            className={`text-left p-5 rounded-xl border-2 transition-all ${statusFilter === "PENDING" ? "bg-amber-50 border-amber-400 shadow" : "bg-white border-slate-200 hover:border-amber-200"}`}
+            className={`text-left p-4 rounded-xl border-2 transition-all ${statusFilter === "PENDING" ? "bg-amber-50 border-amber-400 shadow-sm" : "bg-white border-slate-200 hover:border-amber-200"}`}
           >
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold tracking-widest uppercase text-slate-500">Pending</p>
-              <Clock className="w-5 h-5 text-amber-500" />
+              <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500">Pending</p>
+              <Clock className="w-4 h-4 text-amber-500" />
             </div>
-            <div className="text-4xl font-black text-slate-900">{pending}</div>
+            <div className="text-3xl font-extrabold text-slate-900">{pending}</div>
           </button>
 
           <button
             onClick={() => setStatusFilter(statusFilter === "DRAFT" ? "ALL" : "DRAFT")}
-            className={`text-left p-5 rounded-xl border-2 transition-all ${statusFilter === "DRAFT" ? "bg-blue-50 border-blue-400 shadow" : "bg-white border-slate-200 hover:border-blue-200"}`}
+            className={`text-left p-4 rounded-xl border-2 transition-all ${statusFilter === "DRAFT" ? "bg-blue-50 border-blue-400 shadow-sm" : "bg-white border-slate-200 hover:border-blue-200"}`}
           >
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold tracking-widest uppercase text-slate-500">Drafts</p>
-              <FileEdit className="w-5 h-5 text-blue-500" />
+              <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500">Drafts</p>
+              <FileEdit className="w-4 h-4 text-blue-500" />
             </div>
-            <div className="text-4xl font-black text-slate-900">{drafts}</div>
+            <div className="text-3xl font-extrabold text-slate-900">{drafts}</div>
           </button>
 
           <button
             onClick={() => setStatusFilter(statusFilter === "COMPLETED" ? "ALL" : "COMPLETED")}
-            className={`text-left p-5 rounded-xl border-2 transition-all ${statusFilter === "COMPLETED" ? "bg-emerald-50 border-emerald-400 shadow" : "bg-white border-slate-200 hover:border-emerald-200"}`}
+            className={`text-left p-4 rounded-xl border-2 transition-all ${statusFilter === "COMPLETED" ? "bg-emerald-50 border-emerald-400 shadow-sm" : "bg-white border-slate-200 hover:border-emerald-200"}`}
           >
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold tracking-widest uppercase text-slate-500">Completed</p>
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500">Completed</p>
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
             </div>
-            <div className="text-4xl font-black text-emerald-600">{completed}</div>
+            <div className="text-3xl font-extrabold text-emerald-600">{completed}</div>
           </button>
         </div>
 
         {/* Search + filter chip */}
-        <div data-tour="search-bar" className="flex items-center justify-between gap-4 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+        <div data-tour="search-bar" className="flex items-center justify-between gap-4 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-2">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by name, role, department..."
-              className="pl-9 pr-4 h-9 w-full text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zuari-blue/30"
+              className="pl-9 pr-4 h-8 w-full text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zuari-blue/30"
             />
           </div>
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 flex-shrink-0">
@@ -159,31 +174,31 @@ export default function ManagerDashboardClient({
                 const status = emp.assessment?.status || "PENDING";
                 const canCalibrate = status === "PENDING" || status === "DRAFT";
                 return (
-                  <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-4">
+                  <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors group text-sm">
+                    <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${avatarColor(emp.name)}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${avatarColor(emp.name)}`}>
                           {getInitials(emp.name)}
                         </div>
                         <div>
-                          <div className="text-[10px] font-bold text-zuari-red font-mono">{emp.id}</div>
-                          <div className="font-semibold text-slate-900 text-sm leading-tight">{emp.name}</div>
+                          <div className="text-[9px] font-bold text-zuari-red font-mono">{emp.id}</div>
+                          <div className="font-semibold text-slate-900 text-[13px] leading-tight">{emp.name}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="text-sm font-semibold text-slate-800">{emp.designation}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">{emp.department}</div>
+                    <td className="px-4 py-3">
+                      <div className="text-[13px] font-semibold text-slate-800">{emp.designation}</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">{emp.department}</div>
                     </td>
-                    <td className="px-4 py-4 text-sm text-slate-600">{emp.location}</td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3 text-[13px] text-slate-600">{emp.location}</td>
+                    <td className="px-4 py-3">
                       <StatusBadge status={status} />
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       {canCalibrate ? (
                         <Link href={`/assessment/${emp.id}`}>
                           <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-all shadow-sm whitespace-nowrap">
-                            Calibrate / Assess <ArrowRight className="w-3.5 h-3.5" />
+                            Start Assessment <ArrowRight className="w-3.5 h-3.5" />
                           </button>
                         </Link>
                       ) : (

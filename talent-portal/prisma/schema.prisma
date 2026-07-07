@@ -103,6 +103,11 @@ model Assessment {
   evidence        Json             @default("{}")
 
   managerComments String?          @db.Text
+
+  // Classification fields — computed and stored on final submission
+  classification  String?          // "High Potential (HiPo)" | "Promotable/Expandable" | "Well-placed"
+  isHiPoException Boolean          @default(false)  // True when score was HiPo range but 3+ sub-dims are rated 1 or 2
+
   submittedById   String?
   submittedAt     DateTime?
   lockedAt        DateTime?
@@ -121,6 +126,7 @@ model Assessment {
   @@index([status])
   @@index([employeeId])
   @@index([cycle])
+  @@index([isHiPoException])
 }
 
 // ─────────────────────────────────────────────────────

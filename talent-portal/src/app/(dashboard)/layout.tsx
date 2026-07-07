@@ -1,13 +1,13 @@
 import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -36,19 +36,19 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <div className="flex h-16 items-center justify-between px-6">
+        <div className="flex h-14 items-center justify-between px-5">
           {/* Left Section: Logo & Title */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-4">
               <Link href="/dashboard" className="flex items-center transition-opacity hover:opacity-80">
-                <img 
-                  src="https://www.zuariindustries.in/assets/web/img/logo/zuari_logo.png" 
-                  alt="Zuari Industries" 
-                  className="h-9 object-contain"
+                <img
+                  src="https://www.zuariindustries.in/assets/web/img/logo/zuari_logo.png"
+                  alt="Zuari Industries"
+                  className="h-7 object-contain"
                 />
               </Link>
-              <div className="h-8 w-px bg-slate-200"></div>
-              <div className="flex flex-col text-slate-700 text-[10px] font-bold tracking-widest leading-tight uppercase">
+              <div className="h-6 w-px bg-slate-200"></div>
+              <div className="flex flex-col text-slate-700 text-[9px] font-bold tracking-widest leading-tight uppercase">
                 <span>Talent Assessment</span>
                 <span className="text-zuari-blue">Workspace</span>
               </div>
@@ -56,15 +56,11 @@ export default async function DashboardLayout({
 
             {/* Middle Section: Navigation Links */}
             <nav className="hidden md:flex items-center gap-1 ml-6">
-              <Link href="/dashboard" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 rounded-md hover:bg-slate-100 hover:text-slate-900 transition-colors">
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
-              </Link>
-              {isHrOrAdmin && (
+              {isHrOrAdmin ? (
                 <>
                   <Link href="/reports" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 rounded-md hover:bg-slate-100 hover:text-slate-900 transition-colors">
-                    <FileSpreadsheet className="w-4 h-4" />
-                    Reports
+                    <LayoutDashboard className="w-4 h-4" />
+                    All teams status
                   </Link>
                   {user.role === "ADMIN" && (
                     <Link href="/admin" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 rounded-md hover:bg-slate-100 hover:text-slate-900 transition-colors">
@@ -73,6 +69,11 @@ export default async function DashboardLayout({
                     </Link>
                   )}
                 </>
+              ) : (
+                <Link href="/dashboard" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 rounded-md hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </Link>
               )}
             </nav>
           </div>
@@ -82,8 +83,8 @@ export default async function DashboardLayout({
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
-                  <button className="flex items-center gap-2 text-left focus:outline-none hover:bg-slate-50 p-1.5 rounded-full border border-transparent hover:border-slate-200 transition-all">
-                    <Avatar className="h-9 w-9 border border-slate-200 shadow-sm">
+                  <button className="flex items-center gap-2 text-left focus:outline-none hover:bg-slate-50 p-1 rounded-full border border-transparent hover:border-slate-200 transition-all">
+                    <Avatar className="h-8 w-8 border border-slate-200 shadow-sm">
                       <AvatarFallback className="bg-zuari-blue/10 text-zuari-blue font-bold text-xs">{initials}</AvatarFallback>
                     </Avatar>
                   </button>
@@ -121,12 +122,12 @@ export default async function DashboardLayout({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <div className="h-8 w-px bg-slate-200 mx-2"></div>
+            <div className="h-6 w-px bg-slate-200 mx-2"></div>
 
-            <img 
-              src="https://www.zuariindustries.in/assets/web/img/logo/adventz.png" 
-              alt="Adventz" 
-              className="h-8 object-contain"
+            <img
+              src="https://www.zuariindustries.in/assets/web/img/logo/adventz.png"
+              alt="Adventz"
+              className="h-6 object-contain"
             />
           </div>
         </div>
@@ -154,7 +155,7 @@ export default async function DashboardLayout({
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto p-6 md:p-8">
+      <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6">
         {children}
       </main>
     </div>

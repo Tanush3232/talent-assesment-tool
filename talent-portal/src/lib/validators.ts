@@ -101,15 +101,18 @@ export const assessmentSubmitSchema = z
     evidence: z
       .record(z.string(), z.string())
       .refine(
-        (ev) => ALL_INDICATORS.every((k) => (ev[k]?.trim().length ?? 0) >= 100),
+        (ev) => ALL_INDICATORS.every((k) => {
+          const len = ev[k]?.trim().length ?? 0;
+          return len >= 40 && len <= 150;
+        }),
         {
-          message: "Each indicator requires at least 100 characters of evidence",
+          message: "Each indicator requires between 40 and 150 characters of evidence",
         }
       ),
     managerComments: z
       .string()
-      .min(100, "Manager comments must be at least 100 characters")
-      .max(1000, "Manager comments must not exceed 1000 characters"),
+      .min(40, "Manager comments must be at least 40 characters")
+      .max(100, "Manager comments must not exceed 100 characters"),
   });
 
 export type AssessmentDraftInput = z.infer<typeof assessmentDraftSchema>;

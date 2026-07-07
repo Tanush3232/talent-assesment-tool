@@ -13,9 +13,16 @@ export interface SectionScoreResult {
 }
 
 export interface TalentClassification {
+  /** The display-facing category label */
   category: "High Potential (HiPo)" | "Promotable/Expandable" | "Well-placed" | "Pending Rating";
   description: string;
-  forcedExclusion?: boolean;
+  /**
+   * True when the employee's grand total was in the HiPo range (≥ 37) but
+   * they have 3 or more sub-dimensions rated 1 or 2. Their displayed category
+   * becomes "Promotable/Expandable" but they are internally tagged as a
+   * HiPo Exception for HR tracking and filtering.
+   */
+  isHiPoException?: boolean;
 }
 
 const SECTION_INDICATORS: Record<SectionKey, string[]> = {
@@ -44,40 +51,32 @@ export function calculateSectionScore(
 }
 
 export function getLowScoresCount(scores: Partial<ScoresMap>): number {
-  let lowCount = 0;
-  const allScores = {
-    ...(scores.ability ?? {}),
-    ...(scores.aspiration ?? {}),
-    ...(scores.leadership ?? {}),
-  };
-  Object.values(allScores).forEach((val) => {
-    if (val !== undefined && val !== null && Number(val) < 3) {
-      lowCount++;
-    }
+  return getLowScoreDetails(scores).length;
+}
+
+export function getLowScoreDetails(scores: Partial<ScoresMap>): { id: string; section: SectionKey }[] {
+  const lowScores: { id: string; section: SectionKey }[] = [];
+  const sections: SectionKey[] = ["ability", "aspiration", "leadership"];
+  
+  sections.forEach(section => {
+    Object.entries(scores[section] || {}).forEach(([id, val]) => {
+      if (val !== undefined && val !== null && Number(val) < 3) {
+        lowScores.push({ id, section });
+      }
+    });
   });
-  return lowCount;
+  
+  return lowScores;
 }
 
 export function getTalentClassification(
-  totalScore: number,
-  lowScoresCount: number
+  totalScore: number
 ): TalentClassification {
   if (totalScore === 0) {
     return {
       category: "Pending Rating",
       description: "Complete evaluation indicators to compute classification.",
     };
-  }
-
-  if (lowScoresCount > 2) {
-    if (totalScore >= 37) {
-      return {
-        category: "Promotable/Expandable",
-        description:
-          "Excluded from High Potential (HiPo) status due to scoring below 3 on more than 2 sub-dimensions. Strong performance aggregate, but requires targeted development on specific behavior blocks.",
-        forcedExclusion: true,
-      };
-    }
   }
 
   if (totalScore >= 37) {
@@ -90,7 +89,7 @@ export function getTalentClassification(
     return {
       category: "Promotable/Expandable",
       description:
-        "Has the potential to move 1 level up with targeted development. Can be considered for larger roles at the same responsibility level immediately. Should receive coaching/mentoring to address the specific gaps on aspects of ability, aspiration or leadership.",
+        "Has the potential to move 1 level up with targeted development. Can be considered for larger roles at the same responsibility level immediately. Should receive coaching/mentoring to address the specific gaps on aspects of ability, aspiration or leadership to enable development towards higher-level roles.",
     };
   } else {
     return {
@@ -106,15 +105,30 @@ export function computeFullAssessmentResult(scores: Partial<ScoresMap>) {
   const asp = calculateSectionScore("aspiration", scores);
   const lead = calculateSectionScore("leadership", scores);
   const grandTotal = ab.sum + asp.sum + lead.sum;
-  const lowScoresCount = getLowScoresCount(scores);
-  const classification = getTalentClassification(grandTotal, lowScoresCount);
+  
+  let classification = getTalentClassification(grandTotal);
+  const lowScoreDetails = getLowScoreDetails(scores);
+
+  // ── HiPo Exception Rule ───────────────────────────────────────────────────
+  // If the employee's score qualifies as HiPo (≥ 37) BUT they have 3 or more
+  // sub-dimensions rated 1 or 2, their final display category becomes
+  // Promotable/Expandable and they are flagged as a HiPo Exception.
+  // ─────────────────────────────────────────────────────────────────────────
+  if (grandTotal >= 37 && lowScoreDetails.length >= 3) {
+    classification = {
+      category: "Promotable/Expandable",
+      description:
+        "This employee's total score falls in the High Potential range, but they have 3 or more sub-dimensions rated 1 or 2. As a result their classification is Promotable/Expandable (HiPo Exception). Review the low-scoring indicators and update ratings if appropriate.",
+      isHiPoException: true,
+    };
+  }
 
   return {
     abilitySum: ab.sum,
     aspirationSum: asp.sum,
     leadershipSum: lead.sum,
     grandTotal,
-    lowScoresCount,
     classification,
+    lowScoreDetails,
   };
 }

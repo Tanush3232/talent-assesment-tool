@@ -47,7 +47,6 @@ export default function ExportCalibrationLog({ data }: { data: any[] }) {
         { header: "Aspiration Subtotal", key: "aspirationTotal", width: 18 },
         { header: "Leadership Subtotal", key: "leadershipTotal", width: 18 },
         { header: "Grand Total Score", key: "grandTotal", width: 16 },
-        { header: "Critical Low Scores Count", key: "lowCount", width: 22 },
         { header: "Final Talent Classification", key: "classification", width: 28 },
       ];
 
@@ -90,7 +89,6 @@ export default function ExportCalibrationLog({ data }: { data: any[] }) {
           aspirationTotal: result.aspirationSum,
           leadershipTotal: result.leadershipSum,
           grandTotal: result.grandTotal,
-          lowCount: result.lowScoresCount,
           classification: result.classification.category,
         });
 

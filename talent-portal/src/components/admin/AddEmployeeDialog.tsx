@@ -67,88 +67,88 @@ export default function AddEmployeeDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="outline" className="border-slate-200"><UserPlus className="w-4 h-4 mr-2" /> Single Add</Button>} />
       
-      <DialogContent className="sm:max-w-[700px] p-6 max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex flex-row items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-          <div className="p-2 bg-zuari-red/10 rounded-lg text-zuari-red">
-            <ShieldAlert className="w-5 h-5" />
+      <DialogContent className="sm:max-w-[600px] p-5 max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="flex flex-row items-center gap-2 border-b border-slate-100 pb-3 mb-3">
+          <div className="p-1.5 bg-zuari-red/10 rounded-lg text-zuari-red">
+            <ShieldAlert className="w-4 h-4" />
           </div>
-          <DialogTitle className="text-xl font-bold tracking-tight text-slate-900">Add New Employee Profile</DialogTitle>
+          <DialogTitle className="text-lg font-bold tracking-tight text-slate-900">Add New Employee Profile</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Employee ID *</label>
-              <input {...form.register("id")} className="w-full h-11 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="EMP008" />
+              <input {...form.register("id")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="EMP008" />
               {form.formState.errors.id && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.id.message}</p>}
             </div>
             
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Employee Name *</label>
-              <input {...form.register("name")} className="w-full h-11 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="John Doe" />
+              <input {...form.register("name")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="John Doe" />
               {form.formState.errors.name && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.name.message}</p>}
             </div>
             
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Employee Email</label>
-              <input {...form.register("email")} className="w-full h-11 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="john.doe@zuari.com" />
+              <input {...form.register("email")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="john.doe@zuari.com" />
               {form.formState.errors.email && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.email.message}</p>}
             </div>
             
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Designation (Role) *</label>
-              <input {...form.register("designation")} className="w-full h-11 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Senior Consultant" />
+              <input {...form.register("designation")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Senior Consultant" />
               {form.formState.errors.designation && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.designation.message}</p>}
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Impact Level</label>
-              <input {...form.register("impactLevel")} className="w-full h-11 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Medium" />
+              <input {...form.register("impactLevel")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Medium" />
               {form.formState.errors.impactLevel && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.impactLevel.message}</p>}
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Employee Entity</label>
-              <input {...form.register("entity")} className="w-full h-11 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Zuari Industries Ltd" />
+              <input {...form.register("entity")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Zuari Industries Ltd" />
               {form.formState.errors.entity && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.entity.message}</p>}
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Manager ID</label>
-              <input {...form.register("managerId")} className="w-full h-11 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="MGR001" />
+              <input {...form.register("managerId")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="MGR001" />
               {form.formState.errors.managerId && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.managerId.message}</p>}
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Manager Email</label>
-              <input {...form.register("managerEmail")} className="w-full h-11 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="sandeep.sharma@zuari.com" />
+              <input {...form.register("managerEmail")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="sandeep.sharma@zuari.com" />
               {form.formState.errors.managerEmail && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.managerEmail.message}</p>}
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Department</label>
-              <input {...form.register("department")} className="w-full h-11 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Engineering & R&D" />
+              <input {...form.register("department")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Engineering & R&D" />
               {form.formState.errors.department && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.department.message}</p>}
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Location</label>
-              <input {...form.register("location")} className="w-full h-11 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Bengaluru Outer Ring Road CoE" />
+              <input {...form.register("location")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Bengaluru Outer Ring Road CoE" />
               {form.formState.errors.location && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.location.message}</p>}
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">HRBP Name</label>
-              <input {...form.register("hrbpName")} className="w-full h-11 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Amit Kumar" />
+              <input {...form.register("hrbpName")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Amit Kumar" />
               {form.formState.errors.hrbpName && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.hrbpName.message}</p>}
             </div>
           </div>
 
           <DialogFooter className="bg-transparent border-t-0 p-0 sm:justify-end gap-2 mt-8">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting} className="border-slate-200 text-slate-700 font-medium px-6 h-11">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting} className="border-slate-200 text-slate-700 font-medium px-6 h-9">
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="bg-[#0b1021] hover:bg-slate-900 text-white font-medium px-6 h-11">
+            <Button type="submit" disabled={isSubmitting} className="bg-[#0b1021] hover:bg-slate-900 text-white font-medium px-6 h-9">
               {isSubmitting ? "Registering..." : "Register Employee"}
             </Button>
           </DialogFooter>

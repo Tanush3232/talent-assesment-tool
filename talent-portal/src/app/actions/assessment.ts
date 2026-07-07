@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assessmentDraftSchema, assessmentSubmitSchema } from "@/lib/validators";
+import { computeFullAssessmentResult } from "@/lib/scoring";
 import { AssessmentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -11,7 +12,7 @@ export async function saveAssessmentDraft(employeeId: string, data: any) {
   if (!session?.user) throw new Error("Unauthorized");
   
   // Validate data against Zod schema (Partial because it's a draft)
-  const parsed = assessmentDraftSchema.safeParse(data);
+  const parsed = assessmentDraftSchema.safeParse({ ...data, employeeId });
   if (!parsed.success) {
     throw new Error("Invalid data format");
   }
@@ -46,12 +47,17 @@ export async function submitAssessment(employeeId: string, data: any) {
   if (!session?.user) throw new Error("Unauthorized");
   
   // Full validation for final submission
-  const parsed = assessmentSubmitSchema.safeParse(data);
+  const parsed = assessmentSubmitSchema.safeParse({ ...data, employeeId });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Validation failed");
   }
   
   const validatedData = parsed.data;
+
+  // Compute classification server-side so it can be persisted faithfully
+  const result = computeFullAssessmentResult(validatedData.scores as any);
+  const classification = result.classification.category;
+  const isHiPoException = result.classification.isHiPoException ?? false;
 
   await prisma.assessment.upsert({
     where: { employeeId },
@@ -62,6 +68,8 @@ export async function submitAssessment(employeeId: string, data: any) {
       scores: validatedData.scores,
       evidence: validatedData.evidence,
       managerComments: validatedData.managerComments,
+      classification,
+      isHiPoException,
       submittedById: session.user.id,
       submittedAt: new Date(),
       createdBy: session.user.id,
@@ -72,6 +80,8 @@ export async function submitAssessment(employeeId: string, data: any) {
       scores: validatedData.scores,
       evidence: validatedData.evidence,
       managerComments: validatedData.managerComments,
+      classification,
+      isHiPoException,
       submittedById: session.user.id,
       submittedAt: new Date(),
       updatedBy: session.user.id,

@@ -24,11 +24,14 @@ type Employee = {
     id: string;
     status: AssessmentStatus;
     scores: any;
+    isHiPoException?: boolean;
   } | null;
   managerName?: string;
 };
 
-type RollupView = "function" | "department" | "manager";
+type ClassificationFilter = "ALL" | "HIPO" | "PROMOTABLE" | "WELLPLACED" | "HIPO_EXCEPTION";
+
+type RollupView = "function" | "department" | "manager" | "entity";
 type StatusFilter = "ALL" | "PENDING" | "DRAFT" | "COMPLETED";
 
 const statusConfig = {
@@ -57,6 +60,7 @@ function avatarColor(name: string) {
 export default function HRDirectoryClient({ employees }: { employees: Employee[] }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [classificationFilter, setClassificationFilter] = useState<ClassificationFilter>("ALL");
   const [fnFilter, setFnFilter] = useState("ALL");
   const [deptFilter, setDeptFilter] = useState("ALL");
   const [managerFilter, setManagerFilter] = useState("ALL");
@@ -87,6 +91,17 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
       if (managerFilter !== "ALL" && (emp.managerName || emp.managerEmail) !== managerFilter) return false;
       if (entityFilter !== "ALL" && emp.entity !== entityFilter) return false;
       if (hrbpFilter !== "ALL" && (emp.hrbpName || "Unassigned") !== hrbpFilter) return false;
+
+      // Classification filter — only applies to completed assessments
+      if (classificationFilter !== "ALL" && status === "COMPLETED") {
+        const isException = emp.assessment?.isHiPoException ?? false;
+        if (classificationFilter === "HIPO_EXCEPTION" && !isException) return false;
+        if (classificationFilter === "HIPO" && isException) return false; // pure HiPo only
+        // For PROMOTABLE / WELLPLACED we'd need scoring — skip for now (filter only exceptions)
+      } else if (classificationFilter === "HIPO_EXCEPTION" && status !== "COMPLETED") {
+        return false; // exception only on completed assessments
+      }
+
       if (search) {
         const q = search.toLowerCase();
         if (
@@ -101,7 +116,7 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
       }
       return true;
     });
-  }, [employees, search, statusFilter, fnFilter, deptFilter, managerFilter, entityFilter, hrbpFilter]);
+  }, [employees, search, statusFilter, classificationFilter, fnFilter, deptFilter, managerFilter, entityFilter, hrbpFilter]);
 
   // Stats
   const total = employees.length;
@@ -113,11 +128,13 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
   const rollupData = useMemo(() => {
     const groups: Record<string, { total: number; completed: number; hipos: number }> = {};
     employees.forEach(emp => {
-      const key = rollupView === "function" 
-        ? emp.department 
-        : rollupView === "department" 
-        ? emp.department 
-        : (emp.managerName || emp.managerEmail);
+      const key = rollupView === "function"
+        ? emp.department
+        : rollupView === "department"
+          ? emp.department
+          : rollupView === "entity"
+            ? emp.entity
+            : (emp.managerName || emp.managerEmail);
       if (!groups[key]) groups[key] = { total: 0, completed: 0, hipos: 0 };
       groups[key].total++;
       if (emp.assessment?.status === "COMPLETED") groups[key].completed++;
@@ -129,7 +146,7 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
           const asp = Object.values(scores.aspiration || {}).reduce((a: number, b: any) => a + Number(b), 0);
           const lead = Object.values(scores.leadership || {}).reduce((a: number, b: any) => a + Number(b), 0);
           if ((ab as number) + (asp as number) + (lead as number) >= 37) groups[key].hipos++;
-        } catch {}
+        } catch { }
       }
     });
     return Object.entries(groups).map(([name, data]) => ({
@@ -146,43 +163,43 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
       <div className="grid grid-cols-4 gap-4">
         <button
           onClick={() => setStatusFilter("ALL")}
-          className={`text-left p-5 rounded-xl border-2 transition-all ${statusFilter === "ALL" ? "bg-slate-900 border-slate-900 text-white shadow-lg" : "bg-white border-slate-200 hover:border-slate-300"}`}
+          className={`text-left p-4 rounded-xl border-2 transition-all ${statusFilter === "ALL" ? "bg-slate-900 border-slate-900 text-white shadow-md" : "bg-white border-slate-200 hover:border-slate-300"}`}
         >
           <div className="flex items-center justify-between mb-2">
-            <p className={`text-xs font-bold tracking-widest uppercase ${statusFilter === "ALL" ? "text-slate-400" : "text-slate-500"}`}>Total Directs</p>
-            <Users className={`w-5 h-5 ${statusFilter === "ALL" ? "text-slate-400" : "text-slate-400"}`} />
+            <p className={`text-[10px] font-bold tracking-widest uppercase ${statusFilter === "ALL" ? "text-slate-400" : "text-slate-500"}`}>Total Directs</p>
+            <Users className={`w-4 h-4 ${statusFilter === "ALL" ? "text-slate-400" : "text-slate-400"}`} />
           </div>
-          <div className={`text-4xl font-black ${statusFilter === "ALL" ? "text-white" : "text-slate-900"}`}>{total}</div>
+          <div className={`text-3xl font-extrabold ${statusFilter === "ALL" ? "text-white" : "text-slate-900"}`}>{total}</div>
         </button>
         <button
           onClick={() => setStatusFilter(statusFilter === "PENDING" ? "ALL" : "PENDING")}
-          className={`text-left p-5 rounded-xl border-2 transition-all ${statusFilter === "PENDING" ? "bg-amber-50 border-amber-400 shadow" : "bg-white border-slate-200 hover:border-amber-200"}`}
+          className={`text-left p-4 rounded-xl border-2 transition-all ${statusFilter === "PENDING" ? "bg-amber-50 border-amber-400 shadow-sm" : "bg-white border-slate-200 hover:border-amber-200"}`}
         >
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-bold tracking-widest uppercase text-slate-500">Pending</p>
-            <Clock className="w-5 h-5 text-amber-500" />
+            <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500">Pending</p>
+            <Clock className="w-4 h-4 text-amber-500" />
           </div>
-          <div className="text-4xl font-black text-slate-900">{pending}</div>
+          <div className="text-3xl font-extrabold text-slate-900">{pending}</div>
         </button>
         <button
           onClick={() => setStatusFilter(statusFilter === "DRAFT" ? "ALL" : "DRAFT")}
-          className={`text-left p-5 rounded-xl border-2 transition-all ${statusFilter === "DRAFT" ? "bg-blue-50 border-blue-400 shadow" : "bg-white border-slate-200 hover:border-blue-200"}`}
+          className={`text-left p-4 rounded-xl border-2 transition-all ${statusFilter === "DRAFT" ? "bg-blue-50 border-blue-400 shadow-sm" : "bg-white border-slate-200 hover:border-blue-200"}`}
         >
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-bold tracking-widest uppercase text-slate-500">Drafts</p>
-            <FileEdit className="w-5 h-5 text-blue-500" />
+            <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500">Drafts</p>
+            <FileEdit className="w-4 h-4 text-blue-500" />
           </div>
-          <div className="text-4xl font-black text-slate-900">{drafts}</div>
+          <div className="text-3xl font-extrabold text-slate-900">{drafts}</div>
         </button>
         <button
           onClick={() => setStatusFilter(statusFilter === "COMPLETED" ? "ALL" : "COMPLETED")}
-          className={`text-left p-5 rounded-xl border-2 transition-all ${statusFilter === "COMPLETED" ? "bg-emerald-50 border-emerald-400 shadow" : "bg-white border-slate-200 hover:border-emerald-200"}`}
+          className={`text-left p-4 rounded-xl border-2 transition-all ${statusFilter === "COMPLETED" ? "bg-emerald-50 border-emerald-400 shadow-sm" : "bg-white border-slate-200 hover:border-emerald-200"}`}
         >
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-bold tracking-widest uppercase text-slate-500">Completed</p>
-            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500">Completed</p>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="text-4xl font-black text-emerald-600">{completed}</div>
+          <div className="text-3xl font-extrabold text-emerald-600">{completed}</div>
         </button>
       </div>
 
@@ -194,13 +211,13 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
             <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase mt-0.5">Quick calibration status overview across the firm</p>
           </div>
           <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-            {(["function", "department", "manager"] as RollupView[]).map(v => (
+            {(["function", "department", "manager", "entity"] as RollupView[]).map(v => (
               <button
                 key={v}
                 onClick={() => setRollupView(v)}
                 className={`px-4 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${rollupView === v ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-700"}`}
               >
-                {v === "function" ? "Function View" : v === "department" ? "Department View" : "Manager View"}
+                {v === "function" ? "Function View" : v === "department" ? "Department View" : v === "entity" ? "Entity View" : "Manager View"}
               </button>
             ))}
           </div>
@@ -209,7 +226,7 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
           <thead>
             <tr className="border-b border-slate-100">
               <th className="text-left px-6 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
-                {rollupView === "manager" ? "Manager" : rollupView === "department" ? "Department" : "Business Function"}
+                {rollupView === "manager" ? "Manager" : rollupView === "department" ? "Department" : rollupView === "entity" ? "Entity" : "Business Function"}
               </th>
               <th className="text-left px-4 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Total Headcount</th>
               <th className="text-left px-4 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Calibration Progress</th>
@@ -218,31 +235,31 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
               <th className="text-left px-4 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Quick GCC Filter</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-slate-50 text-sm">
             {rollupData.map(row => (
               <tr key={row.name} className="hover:bg-slate-50/50 transition-colors">
-                <td className="px-6 py-4 font-semibold text-slate-800 text-sm">{row.name}</td>
-                <td className="px-4 py-4 text-slate-600 text-sm">{row.total}</td>
-                <td className="px-4 py-4">
+                <td className="px-5 py-3 font-semibold text-slate-800 text-[13px]">{row.name}</td>
+                <td className="px-4 py-3 text-slate-600 text-[13px]">{row.total}</td>
+                <td className="px-4 py-3">
                   <div>
-                    <span className="font-bold text-slate-900 text-sm">{row.progressPct}%</span>
-                    <div className="text-xs text-slate-400 mt-0.5">({row.completed}/{row.total} Done)</div>
+                    <span className="font-bold text-slate-900 text-[13px]">{row.progressPct}%</span>
+                    <div className="text-[10px] text-slate-400 mt-0.5">({row.completed}/{row.total} Done)</div>
                   </div>
                 </td>
-                <td className="px-4 py-4 text-slate-700 font-semibold text-sm">{row.hipos}</td>
-                <td className="px-4 py-4">
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${row.hipoDensity >= 50 ? "bg-emerald-100 text-emerald-700" : row.hipoDensity > 0 ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
+                <td className="px-4 py-3 text-slate-700 font-semibold text-[13px]">{row.hipos}</td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${row.hipoDensity >= 50 ? "bg-emerald-100 text-emerald-700" : row.hipoDensity > 0 ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
                     {row.hipoDensity}.0%
                   </span>
                 </td>
-                <td className="px-4 py-4">
+                <td className="px-4 py-3">
                   <button
                     onClick={() => {
-                      setRollupView(rollupView);
                       if (rollupView === "department" || rollupView === "function") setDeptFilter(row.name);
+                      else if (rollupView === "entity") setEntityFilter(row.name);
                       else setManagerFilter(row.name);
                     }}
-                    className="text-xs font-semibold text-slate-500 border border-slate-200 rounded-md px-3 py-1.5 hover:bg-slate-50 hover:text-slate-700 hover:border-slate-300 transition-all"
+                    className="text-[11px] font-semibold text-slate-500 border border-slate-200 rounded-md px-3 py-1 hover:bg-slate-50 hover:text-slate-700 hover:border-slate-300 transition-all"
                   >
                     Filter below
                   </button>
@@ -258,12 +275,12 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
         <div className="flex flex-wrap items-center gap-3">
           {/* Search */}
           <div className="relative flex-shrink-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by name, role, department..."
-              className="pl-9 pr-4 h-9 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zuari-blue/30 w-56"
+              className="pl-8 pr-3 h-8 text-[13px] border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zuari-blue/30 w-52"
             />
           </div>
 
@@ -319,34 +336,41 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
                 const status = emp.assessment?.status || "PENDING";
                 const sc = statusConfig[status];
                 return (
-                  <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-4">
+                  <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors group text-sm">
+                    <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${avatarColor(emp.name)}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${avatarColor(emp.name)}`}>
                           {getInitials(emp.name)}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-zuari-red font-mono">{emp.id}</span>
+                            <span className="text-[9px] font-bold text-zuari-red font-mono">{emp.id}</span>
                           </div>
-                          <div className="font-semibold text-slate-900 text-sm leading-tight">{emp.name}</div>
+                          <div className="font-semibold text-slate-900 text-[13px] leading-tight">{emp.name}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="text-sm font-semibold text-slate-800 leading-tight">{emp.designation}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">{emp.department} • {emp.entity}</div>
+                    <td className="px-4 py-3">
+                      <div className="text-[13px] font-semibold text-slate-800 leading-tight">{emp.designation}</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">{emp.department} • {emp.entity}</div>
                     </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm font-semibold text-zuari-blue">{emp.hrbpName || <span className="text-slate-300 italic text-xs">Unassigned</span>}</span>
+                    <td className="px-4 py-3">
+                      <span className="text-[13px] font-semibold text-zuari-blue">{emp.hrbpName || <span className="text-slate-300 italic text-[11px]">Unassigned</span>}</span>
                     </td>
-                    <td className="px-4 py-4 text-sm text-slate-600">{emp.location}</td>
-                    <td className="px-4 py-4">
-                      <Badge className={`text-xs font-bold border ${sc.className} hover:${sc.className}`}>
-                        {sc.label}
-                      </Badge>
+                    <td className="px-4 py-3 text-[13px] text-slate-600">{emp.location}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1">
+                        <Badge className={`text-[10px] font-bold border ${sc.className} hover:${sc.className} px-2 py-0.5 w-fit`}>
+                          {sc.label}
+                        </Badge>
+                        {status === "COMPLETED" && emp.assessment?.isHiPoException && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-amber-100 border border-amber-300 text-amber-700 px-2 py-0.5 rounded-full w-fit">
+                            ⚡ HiPo Exception
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       {status === "COMPLETED" ? (
                         <Link href={`/assessment/${emp.id}`}>
                           <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-all group-hover:shadow-sm">
@@ -354,7 +378,7 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
                           </button>
                         </Link>
                       ) : (
-                        <span className="text-xs font-semibold text-slate-400 tracking-wide uppercase">Awaiting Manager</span>
+                        <span className="text-[10px] font-semibold text-slate-400 tracking-wide uppercase">Awaiting Manager</span>
                       )}
                     </td>
                   </tr>

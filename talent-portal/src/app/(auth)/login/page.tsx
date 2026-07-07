@@ -11,6 +11,7 @@ import { Metadata } from "next";
 import Image from "next/image";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
+import ClearSessionStorage from "@/components/auth/ClearSessionStorage";
 
 export const metadata: Metadata = {
   title: "Login",
@@ -147,6 +148,8 @@ export default async function LoginPage({
           </div>
         </CardContent>
       </Card>
+      
+      <ClearSessionStorage />
     </div>
   );
 }
