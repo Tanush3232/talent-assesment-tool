@@ -9,7 +9,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     MicrosoftEntraID({
       clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID!,
       clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET!,
-      issuer: `https://login.microsoftonline.com/${process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID}/v2.0`,
+      // issuer is auto-read from AUTH_MICROSOFT_ENTRA_ID_ISSUER env var
+      // which forces single-tenant (org-only) login
     }),
     CredentialsProvider({
       name: "Dummy Login",
@@ -43,6 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: "jwt",
     maxAge: SESSION_MAX_AGE, // 12 hours
   },
+  trustHost: true,
   callbacks: {
     async signIn({ user, account }) {
       if (!user.email) return false;
@@ -61,8 +63,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return "/login?error=suspended";
       }
 
-      // Update Azure OID on first login
-      if (account?.providerAccountId && !dbUser.azureOid) {
+      // Update Azure OID on first login for Microsoft Entra ID
+      if (account?.provider === "microsoft-entra-id" && account.providerAccountId && !dbUser.azureOid) {
         await prisma.user.update({
           where: { id: dbUser.id },
           data: { azureOid: account.providerAccountId },
