@@ -6,6 +6,7 @@ import { computeFullAssessmentResult } from "@/lib/scoring";
 import { DEPARTMENT_TO_FUNCTION } from "@/lib/constants";
 import ExcelJS from "exceljs";
 import { toast } from "sonner";
+import ExportReportCenter from "@/components/export-report-center/ExportReportCenter";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -467,9 +468,11 @@ function EnhancedExport({ data }: { data: any[] }) {
 export default function ReportsAnalyticsClient({
   employees,
   completedAssessments,
+  role,
 }: {
   employees: Employee[];
   completedAssessments: any[];
+  role?: string;
 }) {
   // ── Filter state ────────────────────────────────────────────────────────
   const [managerFilter, setManagerFilter] = useState("ALL");
@@ -690,7 +693,10 @@ export default function ReportsAnalyticsClient({
             and audit logs.
           </p>
         </div>
-        <EnhancedExport data={completedAssessments} />
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <EnhancedExport data={completedAssessments} />
+          <ExportReportCenter role={role ?? ""} />
+        </div>
       </div>
 
       {/* ── CHART CARD ─────────────────────────────────────────────────── */}

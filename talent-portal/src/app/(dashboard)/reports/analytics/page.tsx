@@ -73,6 +73,7 @@ export default async function ReportsAnalyticsPage() {
     <ReportsAnalyticsClient
       employees={enrichedEmployees as any}
       completedAssessments={enrichedCompleted as any}
+      role={session.user.role}
     />
   );
 }
