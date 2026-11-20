@@ -2,11 +2,10 @@
 
 import { useEffect } from "react";
 
+// Legacy cleanup only: the tour now counts views in localStorage ("manager_tour_count") and must survive logins.
 export default function ClearSessionStorage() {
   useEffect(() => {
-    if (typeof window !== "undefined" && window.sessionStorage) {
-      window.sessionStorage.removeItem("manager_tour_seen");
-    }
+    window.sessionStorage.removeItem("manager_tour_seen");
   }, []);
 
   return null;

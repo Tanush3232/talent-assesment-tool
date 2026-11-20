@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { UserPlus, ShieldAlert } from "lucide-react";
-import { addSystemUser } from "@/app/actions/user";
+import { addSystemUser, updateSystemUser } from "@/app/actions/user";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,32 +19,36 @@ const userSchema = z.object({
   location: z.string().optional(),
 });
 
-export default function AddUserDialog() {
+// Serves "Add User" (no props) and "Edit" (pass `user` + `onClose`). Edit also exposes Active/Suspended.
+export default function AddUserDialog({ user, onClose }: { user?: any; onClose?: () => void }) {
+  const isEdit = !!user;
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isActive, setIsActive] = useState<boolean>(user?.isActive ?? true);
 
   const form = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
     defaultValues: {
-      name: "",
-      email: "",
-      role: "MANAGER", // default role
-      designation: "",
-      department: "",
-      location: "",
+      name: user?.name ?? "",
+      email: user?.email ?? "",
+      role: user?.role ?? "MANAGER", // default role
+      designation: user?.designation ?? "",
+      department: user?.department ?? "",
+      location: user?.location ?? "",
     },
   });
 
   const onSubmit = async (data: z.infer<typeof userSchema>) => {
     setIsSubmitting(true);
     try {
-      const res = await addSystemUser(data);
+      const res = isEdit ? await updateSystemUser({ ...data, id: user.id, isActive }) : await addSystemUser(data);
       if (res.success) {
-        toast.success("System User added successfully!");
+        toast.success(isEdit ? "System User updated!" : "System User added successfully!");
         setOpen(false);
+        onClose?.();
         form.reset();
       } else {
-        toast.error(res.error || "Failed to add system user");
+        toast.error(res.error || "Failed to save system user");
       }
     } catch (error) {
       toast.error("An unexpected error occurred");
@@ -54,15 +58,15 @@ export default function AddUserDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button className="bg-zuari-blue hover:bg-zuari-blue/90 text-white"><UserPlus className="w-4 h-4 mr-2" /> Add User</Button>} />
+    <Dialog open={isEdit || open} onOpenChange={(v) => (isEdit ? !v && onClose?.() : setOpen(v))}>
+      {!isEdit && <DialogTrigger render={<Button className="bg-zuari-blue hover:bg-zuari-blue/90 text-white"><UserPlus className="w-4 h-4 mr-2" /> Add User</Button>} />}
       
       <DialogContent className="sm:max-w-[450px] p-5 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center gap-2 border-b border-slate-100 pb-3 mb-3">
           <div className="p-1.5 bg-zuari-blue/10 rounded-lg text-zuari-blue">
             <ShieldAlert className="w-4 h-4" />
           </div>
-          <DialogTitle className="text-lg font-bold tracking-tight text-slate-900">Add System User</DialogTitle>
+          <DialogTitle className="text-lg font-bold tracking-tight text-slate-900">{isEdit ? `Edit System User` : "Add System User"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -106,12 +110,22 @@ export default function AddUserDialog() {
             {form.formState.errors.location && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.location.message}</p>}
           </div>
 
+          {isEdit && (
+            <div className="space-y-1">
+              <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Status</label>
+              <select value={isActive ? "1" : "0"} onChange={(e) => setIsActive(e.target.value === "1")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white">
+                <option value="1">Active</option>
+                <option value="0">Suspended (cannot sign in)</option>
+              </select>
+            </div>
+          )}
+
           <DialogFooter className="bg-transparent border-t-0 p-0 sm:justify-end gap-2 mt-8">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting} className="border-slate-200 text-slate-700 font-medium px-6 h-9">
+            <Button type="button" variant="outline" onClick={() => (isEdit ? onClose?.() : setOpen(false))} disabled={isSubmitting} className="border-slate-200 text-slate-700 font-medium px-6 h-9">
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting} className="bg-zuari-blue hover:bg-zuari-blue/90 text-white font-medium px-6 h-11">
-              {isSubmitting ? "Adding..." : "Add System User"}
+              {isSubmitting ? "Saving..." : isEdit ? "Save Changes" : "Add System User"}
             </Button>
           </DialogFooter>
         </form>

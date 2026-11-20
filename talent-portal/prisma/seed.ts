@@ -1,4 +1,6 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+dotenv.config();
 import { PrismaClient, UserRole, AssessmentStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
@@ -154,6 +156,35 @@ async function main() {
     },
   ];
 
+  // Demo roster under MGR001 (Sandeep Sharma) so all 3 statuses show up in the manager view:
+  //   EMP001 Arjun Mehta -> COMPLETED, EMP006 Neha Kulkarni -> DRAFT, EMP007 Rohan Desai -> PENDING (no assessment row)
+  employees.push(
+    {
+      id: "EMP006",
+      name: "Neha Kulkarni",
+      email: "neha.kulkarni@adventz.com",
+      designation: "Software Engineer",
+      impactLevel: "Medium",
+      entity: "Adventz Corporate CoE",
+      department: "Engineering & R&D",
+      location: "Bengaluru Outer Ring Road CoE",
+      managerId: "MGR001",
+      managerEmail: "sandeep.sharma@adventz.com",
+    },
+    {
+      id: "EMP007",
+      name: "Rohan Desai",
+      email: "rohan.desai@adventz.com",
+      designation: "QA Engineer",
+      impactLevel: "Medium",
+      entity: "Adventz Corporate CoE",
+      department: "Engineering & R&D",
+      location: "Bengaluru Outer Ring Road CoE",
+      managerId: "MGR001",
+      managerEmail: "sandeep.sharma@adventz.com",
+    }
+  );
+
   for (const emp of employees) {
     await prisma.employee.upsert({
       where: { id: emp.id },
@@ -224,6 +255,30 @@ async function main() {
     },
   });
   console.log("✅ Draft assessment created for EMP002");
+
+  // ── Draft assessment for EMP006 (under MGR001, so the manager view shows a DRAFT) ──
+  await prisma.assessment.upsert({
+    where: { employeeId: "EMP006" },
+    update: {},
+    create: {
+      employeeId: "EMP006",
+      cycle: "FY2026",
+      status: AssessmentStatus.DRAFT,
+      scores: {
+        ability: { "1.1": 3, "1.2": 3 },
+        aspiration: {},
+        leadership: {},
+      },
+      evidence: {
+        "1.1": "Neha picked up the new CI pipeline tooling quickly and onboarded two teammates onto it without any hand-holding.",
+        "1.2": "She regularly uses test automation and dashboards to catch regressions early and shares findings with the team.",
+      },
+      managerComments: "",
+      createdBy: manager1.id,
+      updatedBy: manager1.id,
+    },
+  });
+  console.log("✅ Draft assessment created for EMP006");
 
   console.log("🎉 Seed complete!");
 }

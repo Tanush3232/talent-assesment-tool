@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { UserPlus, ShieldAlert, X } from "lucide-react";
-import { addSingleEmployee } from "@/app/actions/employee";
+import { addSingleEmployee, updateEmployee } from "@/app/actions/employee";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,37 +24,40 @@ const employeeSchema = z.object({
   hrbpName: z.string().optional(),
 });
 
-export default function AddEmployeeDialog() {
+// Same form serves "Single Add" (no props) and "Edit" (pass `employee` + `onClose`).
+export default function AddEmployeeDialog({ employee, onClose }: { employee?: any; onClose?: () => void }) {
+  const isEdit = !!employee;
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof employeeSchema>>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
-      id: "",
-      name: "",
-      email: "",
-      designation: "",
-      impactLevel: "",
-      entity: "",
-      managerId: "",
-      managerEmail: "",
-      department: "",
-      location: "",
-      hrbpName: "",
+      id: employee?.id ?? "",
+      name: employee?.name ?? "",
+      email: employee?.email ?? "",
+      designation: employee?.designation ?? "",
+      impactLevel: employee?.impactLevel ?? "",
+      entity: employee?.entity ?? "",
+      managerId: employee?.managerId ?? "",
+      managerEmail: employee?.managerEmail ?? "",
+      department: employee?.department ?? "",
+      location: employee?.location ?? "",
+      hrbpName: employee?.hrbpName ?? "",
     },
   });
 
   const onSubmit = async (data: z.infer<typeof employeeSchema>) => {
     setIsSubmitting(true);
     try {
-      const res = await addSingleEmployee(data);
+      const res = isEdit ? await updateEmployee(data) : await addSingleEmployee(data);
       if (res.success) {
-        toast.success("Employee added successfully!");
+        toast.success(isEdit ? "Employee updated successfully!" : "Employee added successfully!");
         setOpen(false);
+        onClose?.();
         form.reset();
       } else {
-        toast.error(res.error || "Failed to add employee");
+        toast.error(res.error || "Failed to save employee");
       }
     } catch (error) {
       toast.error("An unexpected error occurred");
@@ -64,22 +67,22 @@ export default function AddEmployeeDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" className="border-slate-200"><UserPlus className="w-4 h-4 mr-2" /> Single Add</Button>} />
+    <Dialog open={isEdit || open} onOpenChange={(v) => (isEdit ? !v && onClose?.() : setOpen(v))}>
+      {!isEdit && <DialogTrigger render={<Button variant="outline" className="border-slate-200"><UserPlus className="w-4 h-4 mr-2" /> Single Add</Button>} />}
       
       <DialogContent className="sm:max-w-[600px] p-5 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center gap-2 border-b border-slate-100 pb-3 mb-3">
           <div className="p-1.5 bg-zuari-red/10 rounded-lg text-zuari-red">
             <ShieldAlert className="w-4 h-4" />
           </div>
-          <DialogTitle className="text-lg font-bold tracking-tight text-slate-900">Add New Employee Profile</DialogTitle>
+          <DialogTitle className="text-lg font-bold tracking-tight text-slate-900">{isEdit ? `Edit Employee — ${employee.name}` : "Add New Employee Profile"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Employee ID *</label>
-              <input {...form.register("id")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="EMP008" />
+              <input {...form.register("id")} readOnly={isEdit} title={isEdit ? "Employee ID can't be changed" : undefined} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm read-only:bg-slate-50 read-only:text-slate-500 read-only:cursor-not-allowed" placeholder="EMP008" />
               {form.formState.errors.id && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.id.message}</p>}
             </div>
             
@@ -145,11 +148,11 @@ export default function AddEmployeeDialog() {
           </div>
 
           <DialogFooter className="bg-transparent border-t-0 p-0 sm:justify-end gap-2 mt-8">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting} className="border-slate-200 text-slate-700 font-medium px-6 h-9">
+            <Button type="button" variant="outline" onClick={() => (isEdit ? onClose?.() : setOpen(false))} disabled={isSubmitting} className="border-slate-200 text-slate-700 font-medium px-6 h-9">
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting} className="bg-[#0b1021] hover:bg-slate-900 text-white font-medium px-6 h-9">
-              {isSubmitting ? "Registering..." : "Register Employee"}
+              {isSubmitting ? "Saving..." : isEdit ? "Save Changes" : "Register Employee"}
             </Button>
           </DialogFooter>
         </form>

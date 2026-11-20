@@ -12,6 +12,7 @@ import Image from "next/image";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import ClearSessionStorage from "@/components/auth/ClearSessionStorage";
+import { ChevronDown } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Login",
@@ -25,6 +26,7 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const error = params?.error;
+  const hasCredentialsError = error === "CredentialsSignin" || error === "credentials";
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 relative overflow-hidden">
@@ -81,48 +83,6 @@ export default async function LoginPage({
           )}
 
           <form
-            action={async (formData) => {
-              "use server";
-              try {
-                await signIn("credentials", formData);
-              } catch (err) {
-                if (err instanceof AuthError) {
-                  return redirect(`/login?error=${err.type}`);
-                }
-                throw err;
-              }
-            }}
-            className="space-y-3"
-          >
-            <input type="hidden" name="redirectTo" value="/dashboard" />
-            <input 
-              name="username" 
-              placeholder="Username (admin, hr, manager)" 
-              className="w-full h-11 px-3 border border-slate-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary" 
-              required 
-            />
-            <input 
-              name="password" 
-              type="password" 
-              placeholder="Password (1234)" 
-              className="w-full h-11 px-3 border border-slate-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary" 
-              required 
-            />
-            <Button
-              type="submit"
-              className="w-full h-11 bg-slate-800 hover:bg-slate-900 text-white font-medium shadow-sm transition-all active:scale-[0.98]"
-            >
-              Sign in with Dummy Credentials
-            </Button>
-          </form>
-
-          <div className="relative flex items-center py-1">
-            <div className="flex-grow border-t border-slate-200"></div>
-            <span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-semibold tracking-wider">OR</span>
-            <div className="flex-grow border-t border-slate-200"></div>
-          </div>
-
-          <form
             action={async () => {
               "use server";
               await signIn("microsoft-entra-id", { redirectTo: "/dashboard" });
@@ -131,7 +91,7 @@ export default async function LoginPage({
             <Button
               type="submit"
               variant="outline"
-              className="w-full h-11 bg-white hover:bg-slate-50 text-slate-700 border-slate-300 font-medium shadow-sm transition-all active:scale-[0.98]"
+              className="w-full h-12 bg-white hover:bg-slate-50 text-slate-800 border-slate-300 font-semibold shadow-sm transition-all active:scale-[0.98]"
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
                 <path d="M10 0H0v10h10V0z" fill="#f25022"/>
@@ -143,6 +103,49 @@ export default async function LoginPage({
             </Button>
           </form>
 
+          <details className="group" open={hasCredentialsError}>
+            <summary className="flex cursor-pointer list-none items-center justify-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700 select-none [&::-webkit-details-marker]:hidden">
+              Sign in with credentials
+              <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+            </summary>
+            <form
+              action={async (formData) => {
+                "use server";
+                try {
+                  await signIn("credentials", formData);
+                } catch (err) {
+                  if (err instanceof AuthError) {
+                    return redirect(`/login?error=${err.type}`);
+                  }
+                  throw err;
+                }
+              }}
+              className="space-y-3 pt-4"
+            >
+              <input type="hidden" name="redirectTo" value="/dashboard" />
+              <input
+                name="username"
+                placeholder="Username"
+                autoComplete="username"
+                className="w-full h-11 px-3 border border-slate-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                required
+              />
+              <input
+                name="password"
+                type="password"
+                placeholder="Password"
+                autoComplete="current-password"
+                className="w-full h-11 px-3 border border-slate-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                required
+              />
+              <Button
+                type="submit"
+                className="w-full h-11 bg-slate-800 hover:bg-slate-900 text-white font-medium shadow-sm transition-all active:scale-[0.98]"
+              >
+                Sign in
+              </Button>
+            </form>
+          </details>
           <div className="text-center text-xs text-slate-400 font-medium">
             &copy; {new Date().getFullYear()} Adventz Group. All rights reserved.
           </div>

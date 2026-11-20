@@ -2,13 +2,18 @@
 
 import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Search, FileEdit, Trash2, ShieldAlert, Users } from "lucide-react";
+import { Search, FileEdit, Trash2, ShieldAlert, Users, AlertTriangle } from "lucide-react";
 import AddEmployeeDialog from "@/components/admin/AddEmployeeDialog";
 import BulkUploadDialog from "@/components/admin/BulkUploadDialog";
 import AddUserDialog from "@/components/admin/AddUserDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogMedia, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { deleteEmployee } from "@/app/actions/employee";
+import { deleteSystemUser } from "@/app/actions/user";
+import { toast } from "sonner";
 
 type AssessmentStatus = "PENDING" | "DRAFT" | "COMPLETED";
 type StatFilter = "ALL" | "CALIBRATED" | "DRAFT" | "PENDING";
+type DeleteTarget = { kind: "employee" | "user"; id: string; name: string; status?: AssessmentStatus };
 
 const impactColors: Record<string, string> = {
   HIGH: "bg-zuari-blue/10 text-zuari-blue border-zuari-blue/20 font-bold",
@@ -17,10 +22,45 @@ const impactColors: Record<string, string> = {
   LOW: "bg-slate-100 text-slate-600 border-slate-200 font-bold",
 };
 
+function RowActions({ label, onEdit, onDelete }: { label: string; onEdit: () => void; onDelete: () => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <button onClick={onEdit} aria-label={`Edit ${label}`} title="Edit" className="p-1.5 rounded-lg hover:bg-zuari-blue/10 text-slate-400 hover:text-zuari-blue transition-colors">
+        <FileEdit className="w-4 h-4" />
+      </button>
+      <button onClick={onDelete} aria-label={`Delete ${label}`} title="Delete" className="p-1.5 rounded-lg hover:bg-zuari-red/10 text-slate-400 hover:text-zuari-red transition-colors">
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 export default function AdminPageClient({ users, employees }: { users: any[]; employees: any[] }) {
   const [search, setSearch] = useState("");
   const [statFilter, setStatFilter] = useState<StatFilter>("ALL");
   const [activeTab, setActiveTab] = useState<"employees" | "users">("employees");
+  const [editingEmployee, setEditingEmployee] = useState<any>(null);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const res = deleteTarget.kind === "employee" ? await deleteEmployee(deleteTarget.id) : await deleteSystemUser(deleteTarget.id);
+      if (res.success) {
+        toast.success(`${deleteTarget.name} deleted`);
+        setDeleteTarget(null);
+      } else {
+        toast.error(res.error || "Delete failed");
+      }
+    } catch {
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const total = employees.length;
   const calibrated = employees.filter(e => e.assessment?.status === "COMPLETED").length;
@@ -159,14 +199,11 @@ export default function AdminPageClient({ users, employees }: { users: any[]; em
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{emp.department}</td>
                       <td className="px-4 py-3 font-semibold text-zuari-blue whitespace-nowrap">{emp.hrbpName || <span className="text-slate-300 italic text-xs">—</span>}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="p-1.5 rounded-lg hover:bg-zuari-blue/10 text-slate-400 hover:text-zuari-blue transition-colors">
-                            <FileEdit className="w-4 h-4" />
-                          </button>
-                          <button className="p-1.5 rounded-lg hover:bg-zuari-red/10 text-slate-400 hover:text-zuari-red transition-colors">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <RowActions
+                          label={emp.name}
+                          onEdit={() => setEditingEmployee(emp)}
+                          onDelete={() => setDeleteTarget({ kind: "employee", id: emp.id, name: emp.name, status: emp.assessment?.status })}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -200,6 +237,7 @@ export default function AdminPageClient({ users, employees }: { users: any[]; em
                   <th className="text-left px-4 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Email</th>
                   <th className="text-left px-4 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Role</th>
                   <th className="text-left px-4 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Status</th>
+                  <th className="text-left px-4 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -221,6 +259,13 @@ export default function AdminPageClient({ users, employees }: { users: any[]; em
                         {u.isActive ? "Active" : "Suspended"}
                       </Badge>
                     </td>
+                    <td className="px-4 py-4">
+                      <RowActions
+                        label={u.name}
+                        onEdit={() => setEditingUser(u)}
+                        onDelete={() => setDeleteTarget({ kind: "user", id: u.id, name: u.name })}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -228,6 +273,34 @@ export default function AdminPageClient({ users, employees }: { users: any[]; em
           </div>
         </div>
       )}
+
+      {editingEmployee && <AddEmployeeDialog key={editingEmployee.id} employee={editingEmployee} onClose={() => setEditingEmployee(null)} />}
+      {editingUser && <AddUserDialog key={editingUser.id} user={editingUser} onClose={() => setEditingUser(null)} />}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && !isDeleting && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-zuari-red/10 text-zuari-red"><AlertTriangle /></AlertDialogMedia>
+            <AlertDialogTitle>Delete {deleteTarget?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.kind === "employee" ? (
+                <>
+                  This permanently removes the employee <strong>and all rated data</strong> (scores, evidence, manager comments, drafts
+                  {deleteTarget.status === "COMPLETED" ? " — this employee's COMPLETED assessment will be wiped" : ""}). This cannot be undone.
+                </>
+              ) : (
+                <>This permanently removes the user&apos;s portal access. This cannot be undone. To block sign-in but keep history, use Edit → Suspended instead.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} disabled={isDeleting} className="bg-zuari-red hover:bg-zuari-red/90 text-white">
+              {isDeleting ? "Deleting..." : "Yes, delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -61,7 +61,7 @@ export default function ManagerDashboardClient({
 
   return (
     <>
-      <ManagerOnboardingModal key={tourKey} managerName={managerName} />
+      <ManagerOnboardingModal key={tourKey} managerName={managerName} forceOpen={tourKey > 0} />
       
       <div className="space-y-6 animate-in fade-in duration-500">
         {/* Header */}
@@ -70,10 +70,7 @@ export default function ManagerDashboardClient({
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">My Direct Reports</h1>
           </div>
           <button
-            onClick={() => {
-              sessionStorage.removeItem("manager_tour_seen");
-              setTourKey(k => k + 1);
-            }}
+            onClick={() => setTourKey(k => k + 1)}
             className="flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-colors border border-slate-200 shadow-sm shrink-0"
           >
             <Play className="w-3.5 h-3.5 text-zuari-blue fill-zuari-blue" />

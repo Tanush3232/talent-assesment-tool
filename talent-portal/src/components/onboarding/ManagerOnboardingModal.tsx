@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BookOpen, ChevronRight, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -173,17 +173,26 @@ function buildSteps(managerName: string): Step[] {
   ];
 }
 
-export default function ManagerOnboardingModal({ managerName }: { managerName: string }) {
-  const [visible, setVisible] = useState(false);
+// Auto-shown only the first 2 times a manager opens the dashboard; the "Product Tour" button remounts with forceOpen.
+const COUNT_KEY = "manager_tour_count";
+const MAX_AUTO_SHOWS = 2;
+
+export default function ManagerOnboardingModal({ managerName, forceOpen = false }: { managerName: string; forceOpen?: boolean }) {
+  const [visible, setVisible] = useState(forceOpen);
   const [step, setStep] = useState(0);
 
+  const counted = useRef(false);
+
   useEffect(() => {
-    const seenThisSession = sessionStorage.getItem("manager_tour_seen");
-    if (!seenThisSession) {
-      setVisible(true);
-      sessionStorage.setItem("manager_tour_seen", "true");
+    if (forceOpen || counted.current) return; // forced opens skip the counter; StrictMode runs effects twice in dev
+    counted.current = true;
+    const count = Number(localStorage.getItem(COUNT_KEY)) || 0;
+    if (count < MAX_AUTO_SHOWS) {
+      localStorage.setItem(COUNT_KEY, String(count + 1));
+      const id = setTimeout(() => setVisible(true), 0);
+      return () => clearTimeout(id);
     }
-  }, []);
+  }, [forceOpen]);
 
   const steps = buildSteps(managerName);
   const current = steps[step];
@@ -216,8 +225,8 @@ export default function ManagerOnboardingModal({ managerName }: { managerName: s
       <div className={cn(
         "fixed inset-0 z-[60] flex justify-center p-4 pointer-events-none transition-all duration-300",
         step === 1 ? "items-end pb-6" :
-        (step === 2 || step === 3) ? "items-start pt-6" :
-        "items-center"
+          (step === 2 || step === 3) ? "items-start pt-6" :
+            "items-center"
       )}>
         <div className={cn(
           "bg-white rounded-2xl shadow-2xl w-full pointer-events-auto border border-slate-200 overflow-hidden transition-all duration-300",
