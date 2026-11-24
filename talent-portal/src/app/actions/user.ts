@@ -4,10 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { ALLOWED_DOMAINS_LABEL, isAllowedEmailDomain } from "@/lib/constants";
 
 const userSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
-  email: z.string().trim().toLowerCase().email("Invalid email format"),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Invalid email format")
+    .refine(isAllowedEmailDomain, `Email domain must be one of: ${ALLOWED_DOMAINS_LABEL}`),
   role: z.enum(["ADMIN", "HR", "MANAGER"], { message: "Role is required" }),
   designation: z.string().optional(),
   department: z.string().optional(),

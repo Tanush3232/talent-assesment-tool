@@ -10,6 +10,7 @@ import ExcelJS from "exceljs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { ALLOWED_DOMAINS_LABEL, isAllowedEmailDomain } from "@/lib/constants";
 
 type ParsedEmployee = {
   rowNumber: number;
@@ -105,7 +106,8 @@ export default function BulkUploadDialog() {
         ["2. Do NOT rename, reorder-away or delete the header row (row 1). Save as .xlsx (or .csv)."],
         ["3. In the portal: Admin > Employee Database > Bulk Upload > drop the file > review the preview > Confirm & Upload."],
         ["4. Upload is all-or-nothing: if any row is invalid, nothing is saved and the problem rows are shown."],
-        ["5. A new Emp ID is ADDED. An existing Emp ID is UPDATED with the values in the sheet. Assessments are never touched. To remove an employee use the delete button in the portal."],
+        ["5. Smart Merge & Append: A new Emp ID is APPENDED. An existing Emp ID only updates changed fields (e.g. replacing '-' placeholders with real locations). Existing values and assessments are never wiped."],
+        [`6. Allowed Email Domains: ${ALLOWED_DOMAINS_LABEL}`],
         [""],
         ["COLUMN", "REQUIRED", "WHAT TO ENTER"],
         ...COLUMNS.map((c) => [c.header, c.required ? "Yes" : "No", c.hint]),
@@ -175,7 +177,9 @@ export default function BulkUploadDialog() {
         const errors: string[] = [];
         COLUMNS.forEach((c) => { if (c.required && !rec[c.field]) errors.push(`${c.header} is required`); });
         if (rec.email && !EMAIL_RE.test(rec.email)) errors.push("Invalid Employee Email");
+        else if (rec.email && !isAllowedEmailDomain(rec.email)) errors.push(`Employee Email domain must be ${ALLOWED_DOMAINS_LABEL}`);
         if (rec.managerEmail && !EMAIL_RE.test(rec.managerEmail)) errors.push("Invalid Manager Email");
+        else if (rec.managerEmail && !isAllowedEmailDomain(rec.managerEmail)) errors.push(`Manager Email domain must be ${ALLOWED_DOMAINS_LABEL}`);
 
         const idKey = rec.id.toLowerCase();
         const emailKey = rec.email.toLowerCase();
@@ -272,7 +276,8 @@ export default function BulkUploadDialog() {
                 <Info className="w-4 h-4 text-[#1e3a8a] shrink-0 mt-0.5" />
                 <ul className="space-y-1 list-disc list-inside marker:text-slate-400">
                   <li>One employee per row. Keep the header row exactly as in the template; all columns except <strong>HRBP Name</strong> are required.</li>
-                  <li>A <strong>new Emp ID is added</strong>; an <strong>existing Emp ID is updated</strong>. Assessments are never changed or deleted by an upload.</li>
+                  <li>A <strong>new Emp ID is appended</strong>; an <strong>existing Emp ID only updates changed fields</strong> (replacing <code>-</code> placeholders when real values are provided, while preserving existing data &amp; assessments).</li>
+                  <li><strong>Allowed Email Domains:</strong> {ALLOWED_DOMAINS_LABEL}.</li>
                   <li><strong>Manager Email</strong> must match the manager&apos;s login email, otherwise the employee won&apos;t appear on their dashboard.</li>
                   <li>Upload is all-or-nothing: if any row is invalid, nothing is saved.</li>
                 </ul>

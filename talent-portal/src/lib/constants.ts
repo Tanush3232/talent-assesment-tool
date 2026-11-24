@@ -158,3 +158,17 @@ export const RATING_SHORT_LABELS: Record<number, string> = {
   3: "Most of the time",
   4: "Consistently / Role Model",
 };
+
+// ── Allowed Corporate Email Domains ────────────────────────────────────────
+export const ALLOWED_EMAIL_DOMAINS = [
+  "adventz.com",
+  "adventz.zuarimoney.com",
+  "zuariinsurance.in",
+] as const;
+
+export const ALLOWED_DOMAINS_LABEL = ALLOWED_EMAIL_DOMAINS.map((d) => `@${d}`).join(", ");
+
+export function isAllowedEmailDomain(email: string): boolean {
+  const parts = email.trim().toLowerCase().split("@");
+  return parts.length === 2 && (ALLOWED_EMAIL_DOMAINS as readonly string[]).includes(parts[1]);
+}

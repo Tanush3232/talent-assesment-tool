@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { prisma } from "@/lib/prisma";
 import { SESSION_MAX_AGE } from "@/lib/constants";
+import { isAllowedEmailDomain } from "@/lib/constants";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -48,10 +49,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       if (!user.email) return false;
+      const email = user.email.trim().toLowerCase();
+
+      if (!isAllowedEmailDomain(email)) {
+        return "/login?error=invalid_domain";
+      }
 
       // Check if user exists in our DB
       const dbUser = await prisma.user.findUnique({
-        where: { email: user.email },
+        where: { email },
       });
 
       if (!dbUser) {
@@ -77,7 +83,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user, account }) {
       if (account && user?.email) {
         const dbUser = await prisma.user.findUnique({
-          where: { email: user.email },
+          where: { email: user.email.trim().toLowerCase() },
         });
         if (dbUser) {
           token.userId = dbUser.id;

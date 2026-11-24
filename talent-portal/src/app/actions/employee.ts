@@ -4,20 +4,47 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { ALLOWED_DOMAINS_LABEL, isAllowedEmailDomain } from "@/lib/constants";
 
 const employeeSchema = z.object({
   id: z.string().trim().min(1, "Employee ID is required"),
   name: z.string().trim().min(1, "Employee Name is required"),
-  email: z.string().trim().toLowerCase().email("Invalid email format"),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Invalid email format")
+    .refine(isAllowedEmailDomain, `Allowed domains: ${ALLOWED_DOMAINS_LABEL}`),
   designation: z.string().trim().min(1, "Designation is required"),
   impactLevel: z.string().trim().min(1, "Impact Level is required"),
   entity: z.string().trim().min(1, "Entity is required"),
   department: z.string().trim().min(1, "Department is required"),
   location: z.string().trim().min(1, "Location is required"),
   managerId: z.string().trim().min(1, "Manager ID is required"),
-  managerEmail: z.string().trim().toLowerCase().email("Invalid manager email"),
+  managerEmail: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Invalid manager email")
+    .refine(isAllowedEmailDomain, `Allowed domains: ${ALLOWED_DOMAINS_LABEL}`),
   hrbpName: z.string().trim().optional(),
 });
+
+const MERGE_FIELDS = [
+  "name",
+  "email",
+  "designation",
+  "impactLevel",
+  "entity",
+  "department",
+  "location",
+  "managerId",
+  "managerEmail",
+  "hrbpName",
+] as const;
+
+const isPlaceholder = (v?: string | null) =>
+  !v || ["-", "--", "—", "n/a"].includes(v.trim().toLowerCase());
 
 type EmployeeInput = z.infer<typeof employeeSchema>;
 
@@ -129,9 +156,8 @@ export async function bulkUploadEmployees(employees: EmployeeInput[]) {
     // An email already owned by a different Emp ID would hit the unique constraint mid-transaction.
     const existing = await prisma.employee.findMany({
       where: { OR: [{ id: { in: rows.map((r) => r.id) } }, { email: { in: rows.map((r) => r.email) } }] },
-      select: { id: true, email: true },
     });
-    const existingIds = new Set(existing.map((e) => e.id));
+    const existingById = new Map(existing.map((e) => [e.id, e]));
     const emailOwner = new Map(existing.map((e) => [e.email, e.id]));
     rows.forEach((r, i) => {
       const owner = emailOwner.get(r.email);
@@ -144,15 +170,39 @@ export async function bulkUploadEmployees(employees: EmployeeInput[]) {
       return { success: false, error: `Nothing was uploaded. ${shown}${more}` };
     }
 
-    // All-or-nothing: one bad row never leaves a half-imported roster.
+    // Smart merge: preserve existing values when incoming cell is a placeholder ("-" / blank),
+    // update only changed fields (e.g. replacing "-" with a real location), and append new Emp IDs.
+    let added = 0;
+    let updated = 0;
+    let unchanged = 0;
+
     await prisma.$transaction(
       async (tx) => {
         for (const emp of rows) {
-          const data = { ...emp, hrbpName: emp.hrbpName || null };
-          if (existingIds.has(emp.id)) {
-            await tx.employee.update({ where: { id: emp.id }, data: { ...data, updatedBy: session.user.id } });
+          const prev = existingById.get(emp.id);
+          if (prev) {
+            const patch: Record<string, string | null> = {};
+            for (const field of MERGE_FIELDS) {
+              const nextVal = field === "hrbpName" ? (emp.hrbpName || null) : emp[field];
+              const prevVal = prev[field] ?? null;
+              // Never overwrite real existing data with a "-" placeholder or blank
+              if (isPlaceholder(nextVal) && !isPlaceholder(prevVal)) continue;
+              if (nextVal !== prevVal) patch[field] = nextVal;
+            }
+            if (Object.keys(patch).length > 0) {
+              await tx.employee.update({
+                where: { id: emp.id },
+                data: { ...patch, updatedBy: session.user.id },
+              });
+              updated++;
+            } else {
+              unchanged++;
+            }
           } else {
-            await tx.employee.create({ data: { ...data, createdBy: session.user.id } });
+            await tx.employee.create({
+              data: { ...emp, hrbpName: emp.hrbpName || null, createdBy: session.user.id },
+            });
+            added++;
           }
         }
       },
@@ -160,8 +210,10 @@ export async function bulkUploadEmployees(employees: EmployeeInput[]) {
     );
 
     refresh();
-    const updated = rows.filter((r) => existingIds.has(r.id)).length;
-    return { success: true, message: `Successfully added ${rows.length - updated} and updated ${updated} employees.` };
+    return {
+      success: true,
+      message: `Added ${added}, updated ${updated}, unchanged ${unchanged} employees. Existing data & assessments preserved.`,
+    };
   } catch (error: any) {
     console.error("Bulk upload failed:", error);
     return { success: false, error: error.message || "Bulk upload failed" };

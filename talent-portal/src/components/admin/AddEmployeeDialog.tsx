@@ -9,16 +9,23 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { ALLOWED_DOMAINS_LABEL, isAllowedEmailDomain } from "@/lib/constants";
 
 const employeeSchema = z.object({
   id: z.string().min(1, "Employee ID is required"),
   name: z.string().min(1, "Employee Name is required"),
-  email: z.string().email("Invalid email format"),
+  email: z
+    .string()
+    .email("Invalid email format")
+    .refine(isAllowedEmailDomain, `Allowed domains: ${ALLOWED_DOMAINS_LABEL}`),
   designation: z.string().min(1, "Designation is required"),
   impactLevel: z.string().min(1, "Impact Level is required"),
   entity: z.string().min(1, "Entity is required"),
   managerId: z.string().min(1, "Manager ID is required"),
-  managerEmail: z.string().email("Invalid manager email"),
+  managerEmail: z
+    .string()
+    .email("Invalid manager email")
+    .refine(isAllowedEmailDomain, `Allowed domains: ${ALLOWED_DOMAINS_LABEL}`),
   department: z.string().min(1, "Department is required"),
   location: z.string().min(1, "Location is required"),
   hrbpName: z.string().optional(),

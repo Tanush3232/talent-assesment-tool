@@ -66,6 +66,11 @@ export default async function LoginPage({
           </div>
         </CardHeader>
         <CardContent className="space-y-6 pb-10">
+          {error === "invalid_domain" && (
+            <div className="p-3 text-sm text-zuari-red/90 bg-zuari-red/10 border border-zuari-red/15 rounded-lg text-center font-medium">
+              Your email domain is not authorized. Please sign in with a valid corporate account.
+            </div>
+          )}
           {error === "not_registered" && (
             <div className="p-3 text-sm text-zuari-red/90 bg-zuari-red/10 border border-zuari-red/15 rounded-lg text-center font-medium">
               Your account is not registered. Please contact HR.
