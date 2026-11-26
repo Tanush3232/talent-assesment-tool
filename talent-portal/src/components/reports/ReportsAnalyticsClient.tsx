@@ -3,7 +3,13 @@
 import { useState, useMemo, useRef } from "react";
 import { ChevronDown, FileSpreadsheet, Loader2 } from "lucide-react";
 import { computeFullAssessmentResult } from "@/lib/scoring";
-import { DEPARTMENT_TO_FUNCTION } from "@/lib/constants";
+import { DEPARTMENT_TO_FUNCTION, SUB_DIMENSIONS, formatAssessmentCycle } from "@/lib/constants";
+
+const ALL_SUB_DIMS = [
+  ...SUB_DIMENSIONS.ability,
+  ...SUB_DIMENSIONS.aspiration,
+  ...SUB_DIMENSIONS.leadership,
+];
 import ExcelJS from "exceljs";
 import { toast } from "sonner";
 import ExportReportCenter from "@/components/export-report-center/ExportReportCenter";
@@ -291,42 +297,19 @@ function EnhancedExport({ data }: { data: any[] }) {
         { header: "Manager Name", key: "manager", width: 25 },
         { header: "HRBP", key: "hrbp", width: 20 },
         { header: "Evaluation Status", key: "status", width: 18 },
-        { header: "Ability 1.1 – Agility", key: "a11", width: 16 },
-        { header: "Ability 1.2 – Digital Mindset", key: "a12", width: 22 },
-        { header: "Ability 1.3 – Strategic Thinking", key: "a13", width: 24 },
-        {
-          header: "Ability 1.4 – Emotional Intelligence",
-          key: "a14",
-          width: 28,
-        },
-        { header: "Aspiration 2.1 – Drive for Growth", key: "a21", width: 26 },
-        {
-          header: "Aspiration 2.2 – Ambition & Flexibility",
-          key: "a22",
-          width: 30,
-        },
-        { header: "Aspiration 2.3 – Resilience & Grit", key: "a23", width: 26 },
-        {
-          header: "Aspiration 2.4 – Org Alignment",
-          key: "a24",
-          width: 24,
-        },
-        {
-          header: "Leadership 3.1 – Discretionary Effort",
-          key: "l31",
-          width: 28,
-        },
-        {
-          header: "Leadership 3.2 – Leading Without Authority",
-          key: "l32",
-          width: 34,
-        },
-        {
-          header: "Leadership 3.3 – Org Advocacy",
-          key: "l33",
-          width: 24,
-        },
-        { header: "Leadership 3.4 – Talent Developer", key: "l34", width: 26 },
+        { header: "Assessment Cycle", key: "cycle", width: 18 },
+        ...ALL_SUB_DIMS.flatMap((d) => [
+          {
+            header: `${d.id} ${d.title} (Score)`,
+            key: `score_${d.id}`,
+            width: 16,
+          },
+          {
+            header: `${d.id} ${d.title} - Manager Remark`,
+            key: `obs_${d.id}`,
+            width: 38,
+          },
+        ]),
         { header: "Ability Subtotal", key: "abilityTotal", width: 16 },
         { header: "Aspiration Subtotal", key: "aspirationTotal", width: 18 },
         { header: "Leadership Subtotal", key: "leadershipTotal", width: 18 },
@@ -357,6 +340,14 @@ function EnhancedExport({ data }: { data: any[] }) {
         const ab = scores.ability || {};
         const asp = scores.aspiration || {};
         const lead = scores.leadership || {};
+        const allScores: Record<string, number | string> = { ...ab, ...asp, ...lead };
+        const evidence = (assessment.evidence || {}) as Record<string, string>;
+        const competencyCells = Object.fromEntries(
+          ALL_SUB_DIMS.flatMap((d) => [
+            [`score_${d.id}`, allScores[d.id] || ""],
+            [`obs_${d.id}`, evidence[d.id] || ""],
+          ])
+        );
 
         const isEx =
           result.classification.isHiPoException ??
@@ -380,18 +371,8 @@ function EnhancedExport({ data }: { data: any[] }) {
             assessment.employee.managerEmail,
           hrbp: assessment.employee.hrbpName || "",
           status: assessment.status,
-          a11: ab["1.1"] || "",
-          a12: ab["1.2"] || "",
-          a13: ab["1.3"] || "",
-          a14: ab["1.4"] || "",
-          a21: asp["2.1"] || "",
-          a22: asp["2.2"] || "",
-          a23: asp["2.3"] || "",
-          a24: asp["2.4"] || "",
-          l31: lead["3.1"] || "",
-          l32: lead["3.2"] || "",
-          l33: lead["3.3"] || "",
-          l34: lead["3.4"] || "",
+          cycle: formatAssessmentCycle(assessment.cycle),
+          ...competencyCells,
           abilityTotal: result.abilitySum,
           aspirationTotal: result.aspirationSum,
           leadershipTotal: result.leadershipSum,
@@ -400,6 +381,7 @@ function EnhancedExport({ data }: { data: any[] }) {
           hipoException: isEx ? "TRUE" : "FALSE",
           managerComments: assessment.managerComments || "",
         });
+        row.alignment = { vertical: "top", wrapText: true };
 
         if (idx % 2 === 0) {
           row.fill = {
