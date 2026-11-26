@@ -5,6 +5,13 @@ import { Download, Loader2, FileSpreadsheet } from "lucide-react";
 import ExcelJS from "exceljs";
 import { toast } from "sonner";
 import { computeFullAssessmentResult } from "@/lib/scoring";
+import { SUB_DIMENSIONS, formatAssessmentCycle } from "@/lib/constants";
+
+const ALL_SUB_DIMS = [
+  ...SUB_DIMENSIONS.ability,
+  ...SUB_DIMENSIONS.aspiration,
+  ...SUB_DIMENSIONS.leadership,
+];
 
 export default function ExportCalibrationLog({ data }: { data: any[] }) {
   const [loading, setLoading] = useState(false);
@@ -28,26 +35,28 @@ export default function ExportCalibrationLog({ data }: { data: any[] }) {
         { header: "Location", key: "location", width: 30 },
         { header: "Manager Name", key: "manager", width: 25 },
         { header: "Evaluation Status", key: "status", width: 18 },
+        { header: "Assessment Cycle", key: "cycle", width: 18 },
         { header: "HRBP", key: "hrbp", width: 20 },
-        // Subdimensions
-        { header: "Ability 1.1", key: "a11", width: 12 },
-        { header: "Ability 1.2", key: "a12", width: 12 },
-        { header: "Ability 1.3", key: "a13", width: 12 },
-        { header: "Ability 1.4", key: "a14", width: 12 },
-        { header: "Aspiration 2.1", key: "a21", width: 14 },
-        { header: "Aspiration 2.2", key: "a22", width: 14 },
-        { header: "Aspiration 2.3", key: "a23", width: 14 },
-        { header: "Aspiration 2.4", key: "a24", width: 14 },
-        { header: "Leadership 3.1", key: "l31", width: 14 },
-        { header: "Leadership 3.2", key: "l32", width: 14 },
-        { header: "Leadership 3.3", key: "l33", width: 14 },
-        { header: "Leadership 3.4", key: "l34", width: 14 },
+        // Subdimensions interleaved with Manager Remarks
+        ...ALL_SUB_DIMS.flatMap((d) => [
+          {
+            header: `${d.id} ${d.title} (Score)`,
+            key: `score_${d.id}`,
+            width: 16,
+          },
+          {
+            header: `${d.id} ${d.title} - Manager Remark`,
+            key: `obs_${d.id}`,
+            width: 38,
+          },
+        ]),
         // Subtotals
         { header: "Ability Subtotal", key: "abilityTotal", width: 16 },
         { header: "Aspiration Subtotal", key: "aspirationTotal", width: 18 },
         { header: "Leadership Subtotal", key: "leadershipTotal", width: 18 },
         { header: "Grand Total Score", key: "grandTotal", width: 16 },
         { header: "Final Talent Classification", key: "classification", width: 28 },
+        { header: "Manager Justification & Comments", key: "managerComments", width: 45 },
       ];
 
       // Style header row
@@ -63,6 +72,14 @@ export default function ExportCalibrationLog({ data }: { data: any[] }) {
         const ab = scores.ability || {};
         const asp = scores.aspiration || {};
         const lead = scores.leadership || {};
+        const allScores: Record<string, number | string> = { ...ab, ...asp, ...lead };
+        const evidence = (assessment.evidence || {}) as Record<string, string>;
+        const competencyCells = Object.fromEntries(
+          ALL_SUB_DIMS.flatMap((d) => [
+            [`score_${d.id}`, allScores[d.id] || ""],
+            [`obs_${d.id}`, evidence[d.id] || ""],
+          ])
+        );
 
         const row = ws.addRow({
           empId: assessment.employee.id,
@@ -72,25 +89,17 @@ export default function ExportCalibrationLog({ data }: { data: any[] }) {
           location: assessment.employee.location,
           manager: assessment.submittedByUser?.name || assessment.employee.managerEmail,
           status: assessment.status,
+          cycle: formatAssessmentCycle(assessment.cycle),
           hrbp: assessment.employee.hrbpName || "",
-          a11: ab["1.1"] || "",
-          a12: ab["1.2"] || "",
-          a13: ab["1.3"] || "",
-          a14: ab["1.4"] || "",
-          a21: asp["2.1"] || "",
-          a22: asp["2.2"] || "",
-          a23: asp["2.3"] || "",
-          a24: asp["2.4"] || "",
-          l31: lead["3.1"] || "",
-          l32: lead["3.2"] || "",
-          l33: lead["3.3"] || "",
-          l34: lead["3.4"] || "",
+          ...competencyCells,
           abilityTotal: result.abilitySum,
           aspirationTotal: result.aspirationSum,
           leadershipTotal: result.leadershipSum,
           grandTotal: result.grandTotal,
           classification: result.classification.category,
+          managerComments: assessment.managerComments || "",
         });
+        row.alignment = { vertical: "top", wrapText: true };
 
         // Alternate row shading
         if (idx % 2 === 0) {

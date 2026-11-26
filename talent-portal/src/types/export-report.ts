@@ -5,6 +5,7 @@
 export interface ExportEmployee {
   id: string;
   name: string;
+  email: string;
   designation: string;
   department: string;
   entity: string;
@@ -31,6 +32,11 @@ export interface ExportAssessment {
   isHiPoException: boolean;
   cycle: string;
   submittedAt: string | null;
+  submittedBy?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   computedResult: ComputedAssessmentResult;
 }
 

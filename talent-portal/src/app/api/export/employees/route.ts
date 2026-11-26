@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { computeFullAssessmentResult } from "@/lib/scoring";
+import { formatAssessmentCycle } from "@/lib/constants";
 
 export async function GET() {
   // ── Auth guard ─────────────────────────────────────────────────────────────
@@ -27,7 +28,7 @@ export async function GET() {
     },
     include: {
       employee: true,
-      submittedByUser: { select: { name: true } },
+      submittedByUser: { select: { id: true, name: true, email: true } },
     },
     orderBy: { employee: { name: "asc" } },
   });
@@ -47,6 +48,7 @@ export async function GET() {
     return {
       id: a.employee.id,
       name: a.employee.name,
+      email: a.employee.email,
       designation: a.employee.designation,
       department: a.employee.department,
       entity: a.employee.entity,
@@ -64,8 +66,9 @@ export async function GET() {
         managerComments: a.managerComments,
         classification: a.classification,
         isHiPoException: a.isHiPoException,
-        cycle: a.cycle,
+        cycle: formatAssessmentCycle(a.cycle),
         submittedAt: a.submittedAt?.toISOString() ?? null,
+        submittedBy: a.submittedByUser ?? null,
         computedResult: {
           abilitySum: computed.abilitySum,
           aspirationSum: computed.aspirationSum,
@@ -79,9 +82,17 @@ export async function GET() {
     };
   });
 
-  // ── Fetch ALL MANAGER users for the manager dropdown ──────────────────────
+  // ── Fetch all active managers (including HR/Admin users who manage direct reports) ──
+  const managerEmails = [...new Set(completedAssessments.map((a) => a.employee.managerEmail.toLowerCase()))];
   const managers = await prisma.user.findMany({
-    where: { role: "MANAGER", isActive: true },
+    where: {
+      isActive: true,
+      OR: [
+        { role: "MANAGER" },
+        { id: { in: managerIds } },
+        { email: { in: managerEmails } },
+      ],
+    },
     select: { id: true, name: true, email: true, designation: true, department: true },
     orderBy: { name: "asc" },
   });

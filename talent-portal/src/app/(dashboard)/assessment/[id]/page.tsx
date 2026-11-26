@@ -44,7 +44,7 @@ export default async function AssessmentPage(props: {
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Talent Assessment</h1>
-          <p className="text-slate-500 text-sm">FY2026 Evaluation Cycle</p>
+          <p className="text-slate-500 text-sm">FY2026-27 Evaluation Cycle</p>
         </div>
       </div>
 

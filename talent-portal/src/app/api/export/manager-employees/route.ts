@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { computeFullAssessmentResult } from "@/lib/scoring";
+import { formatAssessmentCycle } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   // ── Auth guard ─────────────────────────────────────────────────────────────
@@ -26,28 +27,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "managerId is required" }, { status: 400 });
   }
 
+  // ── Resolve manager first (match direct reports by managerId OR managerEmail) ──
+  const managerUser = await prisma.user.findUnique({
+    where: { id: managerId },
+    select: { id: true, name: true, email: true },
+  });
+  const managerName = managerUser?.name;
+
   // ── Fetch COMPLETED assessments for this manager's direct reports ──────────
   const completedAssessments = await prisma.assessment.findMany({
     where: {
       status: "COMPLETED",
       employee: {
         isActive: true,
-        managerId,
+        OR: [
+          { managerId },
+          ...(managerUser?.email
+            ? [{ managerEmail: { equals: managerUser.email, mode: "insensitive" as const } }]
+            : []),
+        ],
       },
     },
     include: {
       employee: true,
-      submittedByUser: { select: { name: true } },
+      submittedByUser: { select: { id: true, name: true, email: true } },
     },
     orderBy: { employee: { name: "asc" } },
   });
-
-  // ── Resolve manager name ───────────────────────────────────────────────────
-  const managerUser = await prisma.user.findUnique({
-    where: { id: managerId },
-    select: { id: true, name: true },
-  });
-  const managerName = managerUser?.name;
 
   // ── Enrich with computed scoring result ────────────────────────────────────
   const employees = completedAssessments.map((a) => {
@@ -56,6 +62,7 @@ export async function GET(request: NextRequest) {
     return {
       id: a.employee.id,
       name: a.employee.name,
+      email: a.employee.email,
       designation: a.employee.designation,
       department: a.employee.department,
       entity: a.employee.entity,
@@ -73,8 +80,9 @@ export async function GET(request: NextRequest) {
         managerComments: a.managerComments,
         classification: a.classification,
         isHiPoException: a.isHiPoException,
-        cycle: a.cycle,
+        cycle: formatAssessmentCycle(a.cycle),
         submittedAt: a.submittedAt?.toISOString() ?? null,
+        submittedBy: a.submittedByUser ?? null,
         computedResult: {
           abilitySum: computed.abilitySum,
           aspirationSum: computed.aspirationSum,

@@ -102,7 +102,7 @@ function EmployeeReport({ assessment }: { assessment: any }) {
     <View style={styles.pageBreak} break>
       <View style={styles.header}>
         <Text style={styles.title}>Talent Assessment Report</Text>
-        <Text style={styles.subtitle}>FY2026 Cycle</Text>
+        <Text style={styles.subtitle}>FY2026-27 Cycle</Text>
       </View>
 
       <View style={styles.section}>

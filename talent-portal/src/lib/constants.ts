@@ -103,7 +103,14 @@ export const FUNCTIONS = ["Technology", "Product", "Commercial", "Operations"] a
 
 export const IMPACT_LEVELS = ["Critical", "High", "Medium", "Low"] as const;
 
-export const ASSESSMENT_CYCLE = "FY2026";
+export const ASSESSMENT_CYCLE = "FY2026-27";
+
+export const COMPANY_NAME = "ZUARI INDUSTRIES LIMITED";
+export const APP_NAME = "Talent Assessment Portal";
+
+export function formatAssessmentCycle(cycle?: string | null): string {
+  return !cycle || cycle === "FY2026" ? ASSESSMENT_CYCLE : cycle;
+}
 
 export const SESSION_MAX_AGE = 12 * 60 * 60; // 12 hours in seconds
 

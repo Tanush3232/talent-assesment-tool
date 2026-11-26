@@ -11,10 +11,28 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
+  Font,
 } from "@react-pdf/renderer";
-import { SUB_DIMENSIONS, RATING_SHORT_LABELS } from "@/lib/constants";
+import { SUB_DIMENSIONS, RATING_SHORT_LABELS, COMPANY_NAME, APP_NAME, formatAssessmentCycle } from "@/lib/constants";
 import type { ExportEmployee } from "@/types/export-report";
+
+// Prevent mid-word hyphenation (e.g. "Flexibility" splitting as "Flexibili-ty")
+Font.registerHyphenationCallback((word) => [word]);
+
+export function getLogoSrc(filename: "zuari_logo.png" | "poddar_logo.png"): string {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/logos/${filename}`;
+  }
+  // Node.js fallback: embed as base64 data URI so React-PDF never calls fetch() on a Windows path
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require("fs") as typeof import("fs");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require("path") as typeof import("path");
+  const buf = fs.readFileSync(path.join(process.cwd(), "public", "logos", filename));
+  return `data:image/png;base64,${buf.toString("base64")}`;
+}
 
 // ── Brand tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -98,15 +116,17 @@ const styles = StyleSheet.create({
   },
   fixedHeaderLeft: {
     color:             C.WHITE,
-    fontSize:          7,
+    fontSize:          6.8,
     fontFamily:        "Helvetica-Bold",
-    letterSpacing:     1.5,
+    letterSpacing:     1.0,
     textTransform:     "uppercase",
+    marginRight:       12,
   },
   fixedHeaderRight: {
     color:             "#93C5FD",
     fontSize:          7,
-    letterSpacing:     0.5,
+    letterSpacing:     0.4,
+    flexShrink:        0,
   },
 
   // ── Fixed footer ──────────────────────────────────────────────────────────
@@ -115,7 +135,7 @@ const styles = StyleSheet.create({
     bottom:            0,
     left:              0,
     right:             0,
-    height:            32,
+    height:            38,
     backgroundColor:   C.SLATE_50,
     borderTopWidth:    1,
     borderTopColor:    C.SLATE_200,
@@ -300,26 +320,31 @@ const styles = StyleSheet.create({
   },
   compColId: {
     width:             "5%",
+    paddingRight:      4,
   },
   compColName: {
-    width:             "18%",
+    width:             "25%",
+    paddingRight:      8,
   },
   compColScore: {
-    width:             "8%",
+    width:             "6%",
+    paddingRight:      6,
   },
   compColRating: {
-    width:             "19%",
+    width:             "20%",
+    paddingRight:      10,
   },
   compColEvidence: {
-    width:             "50%",
+    width:             "44%",
+    paddingLeft:       2,
   },
   compCellText: {
-    fontSize:          8,
+    fontSize:          7.5,
     color:             C.SLATE_700,
     lineHeight:        1.4,
   },
   compCellBold: {
-    fontSize:          8,
+    fontSize:          7.8,
     color:             C.NAVY,
     fontFamily:        "Helvetica-Bold",
   },
@@ -358,12 +383,9 @@ const styles = StyleSheet.create({
   },
 });
 
-// ── Score badge color ─────────────────────────────────────────────────────────
-function scoreBg(score: number): { bg: string; text: string } {
-  if (score >= 4) return { bg: "#1E3A8A", text: C.WHITE };
-  if (score === 3) return { bg: C.EMERALD_LIGHT, text: C.EMERALD_DARK };
-  if (score === 2) return { bg: C.AMBER_LIGHT, text: C.AMBER };
-  return { bg: C.ROSE_LIGHT, text: C.ROSE };
+// ── Score badge color (black small box with white text) ───────────────────────
+function scoreBg(): { bg: string; text: string } {
+  return { bg: C.NAVY, text: C.WHITE };
 }
 
 // ── Truncate evidence text ────────────────────────────────────────────────────
@@ -372,25 +394,92 @@ function truncate(text: string, max = 220): string {
   return text.slice(0, max) + "…";
 }
 
+function formatSubmitter(employee: ExportEmployee, assessment: ExportEmployee["assessment"]) {
+  const name = assessment.submittedBy?.name || employee.managerName;
+  const email = assessment.submittedBy?.email || employee.managerEmail || "";
+  return {
+    name,
+    email,
+    display: email ? `${name} (${email})` : name,
+  };
+}
+
+const POTENTIAL_BANDS = [
+  {
+    key: "HIPO" as const,
+    range: "37 – 48",
+    classification: "High Potential (HiPo)",
+    approach:
+      "Has the potential to move 1-2 levels up. Excels across all three pillars. Can be considered for promotion immediately, if other promotion criteria are met. Should receive broad organizational exposure, executive mentorship, and rapid development paths.",
+  },
+  {
+    key: "PROMOTABLE" as const,
+    range: "24 – 36",
+    classification: "Promotable/Expandable",
+    approach:
+      "Has the potential to move 1 level up with targeted development. Can be considered for larger roles at the same responsibility level immediately. Should receive coaching/mentoring to address the specific gaps on aspects of ability, aspiration or leadership to enable development towards higher-level roles.",
+  },
+  {
+    key: "WELL_PLACED" as const,
+    range: "Below 24",
+    classification: "Well-placed",
+    approach:
+      "Not yet ready for larger roles. Consider job enrichment, deep specialization, and retention if the performance is good.",
+  },
+];
+
+function getActiveBandKey(grandTotal: number, isHiPoException: boolean) {
+  if (!isHiPoException && grandTotal >= 37 && grandTotal <= 48) return "HIPO" as const;
+  if (isHiPoException || (grandTotal >= 24 && grandTotal <= 36)) return "PROMOTABLE" as const;
+  return "WELL_PLACED" as const;
+}
+
+function formatSubmittedDateTime(iso?: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // COVER PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 function CoverPage({ employee, assessment }: { employee: ExportEmployee; assessment: ExportEmployee["assessment"] }) {
   const cls = classColors(assessment.computedResult.classificationCategory);
   const initials = getInitials(employee.name);
+  const cycle = formatAssessmentCycle(assessment.cycle);
+  const submitter = formatSubmitter(employee, assessment);
   const generatedDate = new Date().toLocaleDateString("en-IN", {
     day: "2-digit", month: "long", year: "numeric",
   });
 
   return (
     <Page size="A4" style={styles.coverPage}>
-      {/* Top branded band */}
+      {/* Top branded band (light gray with logos + high-contrast navy/blue text) */}
       <View style={{
-        backgroundColor: C.NAVY,
+        backgroundColor: "#E2E8F0",
         paddingHorizontal: PAGE_H_PAD,
-        paddingTop: 50,
-        paddingBottom: 44,
+        paddingTop: 28,
+        paddingBottom: 32,
       }}>
+        {/* Top Logos Row */}
+        <View style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 18,
+        }}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image src={getLogoSrc("zuari_logo.png")} style={{ height: 28, objectFit: "contain" }} />
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image src={getLogoSrc("poddar_logo.png")} style={{ height: 26, objectFit: "contain" }} />
+        </View>
+
         {/* Confidential badge */}
         <View style={{
           alignSelf: "flex-start",
@@ -398,19 +487,19 @@ function CoverPage({ employee, assessment }: { employee: ExportEmployee; assessm
           borderRadius: 3,
           paddingHorizontal: 8,
           paddingVertical: 3,
-          marginBottom: 20,
+          marginBottom: 14,
         }}>
           <Text style={{ color: C.WHITE, fontSize: 7, fontFamily: "Helvetica-Bold", letterSpacing: 1.5 }}>
             STRICTLY CONFIDENTIAL
           </Text>
         </View>
 
-        {/* Main title */}
-        <Text style={{ color: C.WHITE, fontSize: 26, fontFamily: "Helvetica-Bold", lineHeight: 1.2, marginBottom: 8 }}>
-          Talent Assessment{"\n"}Report
+        {/* Company & App title */}
+        <Text style={{ color: C.NAVY, fontSize: 22, fontFamily: "Helvetica-Bold", letterSpacing: 0.8, marginBottom: 4 }}>
+          {COMPANY_NAME}
         </Text>
-        <Text style={{ color: "#93C5FD", fontSize: 11, letterSpacing: 0.5 }}>
-          {assessment.cycle} Performance Evaluation Cycle
+        <Text style={{ color: C.BLUE, fontSize: 15, fontFamily: "Helvetica-Bold" }}>
+          {APP_NAME}
         </Text>
       </View>
 
@@ -458,6 +547,10 @@ function CoverPage({ employee, assessment }: { employee: ExportEmployee; assessm
             <Text style={styles.infoValue}>{employee.id}</Text>
           </View>
           <View style={styles.infoCell}>
+            <Text style={styles.infoLabel}>Employee Email</Text>
+            <Text style={styles.infoValue}>{employee.email || "—"}</Text>
+          </View>
+          <View style={styles.infoCell}>
             <Text style={styles.infoLabel}>Department</Text>
             <Text style={styles.infoValue}>{employee.department}</Text>
           </View>
@@ -470,8 +563,8 @@ function CoverPage({ employee, assessment }: { employee: ExportEmployee; assessm
             <Text style={styles.infoValue}>{employee.location}</Text>
           </View>
           <View style={styles.infoCell}>
-            <Text style={styles.infoLabel}>Direct Manager</Text>
-            <Text style={styles.infoValue}>{employee.managerName}</Text>
+            <Text style={styles.infoLabel}>Line Manager</Text>
+            <Text style={styles.infoValue}>{submitter.display}</Text>
           </View>
           <View style={styles.infoCell}>
             <Text style={styles.infoLabel}>HRBP</Text>
@@ -480,10 +573,6 @@ function CoverPage({ employee, assessment }: { employee: ExportEmployee; assessm
           <View style={styles.infoCell}>
             <Text style={styles.infoLabel}>Impact Level</Text>
             <Text style={styles.infoValue}>{employee.impactLevel}</Text>
-          </View>
-          <View style={styles.infoCell}>
-            <Text style={styles.infoLabel}>Assessment Cycle</Text>
-            <Text style={styles.infoValue}>{assessment.cycle}</Text>
           </View>
         </View>
 
@@ -502,9 +591,9 @@ function CoverPage({ employee, assessment }: { employee: ExportEmployee; assessm
           </Text>
         </View>
 
-        {/* Grand total score */}
+        {/* Grand total score (matches classification color) */}
         <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: 4 }}>
-          <Text style={{ fontSize: 32, fontFamily: "Helvetica-Bold", color: C.BLUE }}>
+          <Text style={{ fontSize: 32, fontFamily: "Helvetica-Bold", color: cls.text }}>
             {assessment.computedResult.grandTotal}
           </Text>
           <Text style={{ fontSize: 14, color: C.SLATE_400, marginLeft: 4 }}>/ 48</Text>
@@ -537,6 +626,9 @@ function CoverPage({ employee, assessment }: { employee: ExportEmployee; assessm
           <Text style={{ fontSize: 7, color: C.SLATE_400, letterSpacing: 0.8 }}>
             HUMAN RESOURCES  ·  STRICTLY CONFIDENTIAL
           </Text>
+          <Text style={{ fontSize: 6.5, color: C.SLATE_400, marginTop: 2 }}>
+            Submitted: {formatSubmittedDateTime(assessment.submittedAt)}
+          </Text>
         </View>
       </View>
     </Page>
@@ -546,23 +638,30 @@ function CoverPage({ employee, assessment }: { employee: ExportEmployee; assessm
 // ─────────────────────────────────────────────────────────────────────────────
 // EXECUTIVE SUMMARY PAGE
 // ─────────────────────────────────────────────────────────────────────────────
-function SummaryPage({ employee, assessment }: { employee: ExportEmployee; assessment: ExportEmployee["assessment"] }) {
+export function EmployeeSummaryPage({ employee, assessment }: { employee: ExportEmployee; assessment: ExportEmployee["assessment"] }) {
   const { computedResult } = assessment;
   const cls = classColors(computedResult.classificationCategory);
+  const cycle = formatAssessmentCycle(assessment.cycle);
+  const submitter = formatSubmitter(employee, assessment);
 
   return (
     <Page size="A4" style={styles.page}>
       {/* Fixed header */}
       <View fixed style={styles.fixedHeader}>
-        <Text style={styles.fixedHeaderLeft}>Talent Assessment Report  ·  {assessment.cycle}</Text>
-        <Text style={styles.fixedHeaderRight}>{employee.name}  ·  {employee.id}</Text>
+        <Text style={styles.fixedHeaderLeft}>{COMPANY_NAME} - {APP_NAME.toUpperCase()}  ·  {cycle}</Text>
+        <Text style={styles.fixedHeaderRight}>{employee.name}</Text>
       </View>
 
       {/* Fixed footer */}
       <View fixed style={styles.fixedFooter}>
-        <Text style={styles.fixedFooterLeft}>
-          STRICTLY CONFIDENTIAL  ·  {employee.entity}  ·  {assessment.cycle}
-        </Text>
+        <View>
+          <Text style={styles.fixedFooterLeft}>
+            STRICTLY CONFIDENTIAL  ·  {employee.entity}  ·  {cycle}
+          </Text>
+          <Text style={{ fontSize: 6, color: C.SLATE_400, marginTop: 1 }}>
+            Submitted: {formatSubmittedDateTime(assessment.submittedAt)}
+          </Text>
+        </View>
         <Text
           style={styles.fixedFooterRight}
           render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
@@ -570,10 +669,14 @@ function SummaryPage({ employee, assessment }: { employee: ExportEmployee; asses
       </View>
 
       {/* Page content */}
+      <Text style={{ fontSize: 6.8, color: C.SLATE_500, textAlign: "right", marginBottom: 4 }}>
+        Line Manager: {submitter.display}
+      </Text>
       <Text style={styles.sectionTitle}>Executive Summary</Text>
 
-      {/* Score cards */}
-      <View style={styles.scoreCardsRow}>
+      {/* 1. Scoring Summary */}
+      <Text style={{ ...styles.sectionSubtitle, marginTop: 4 }}>Scoring Summary</Text>
+      <View style={{ ...styles.scoreCardsRow, alignItems: "center" }}>
         <View style={styles.scoreCard}>
           <Text style={styles.scoreCardLabel}>Ability</Text>
           <Text style={styles.scoreCardValue}>{computedResult.abilitySum}</Text>
@@ -584,103 +687,141 @@ function SummaryPage({ employee, assessment }: { employee: ExportEmployee; asses
           <Text style={styles.scoreCardValue}>{computedResult.aspirationSum}</Text>
           <Text style={styles.scoreCardMax}>out of 16</Text>
         </View>
-        <View style={styles.scoreCard}>
+        <View style={{ ...styles.scoreCard, marginRight: 0 }}>
           <Text style={styles.scoreCardLabel}>Leadership</Text>
           <Text style={styles.scoreCardValue}>{computedResult.leadershipSum}</Text>
           <Text style={styles.scoreCardMax}>out of 16</Text>
         </View>
-        <View style={styles.scoreCardLast}>
+        <View style={{ width: 22, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.SLATE_500 }}>=</Text>
+        </View>
+        <View style={{ ...styles.scoreCardLast, backgroundColor: cls.bg, borderColor: cls.border }}>
           <Text style={styles.scoreCardLabel}>Grand Total</Text>
-          <Text style={styles.scoreCardValueBlue}>{computedResult.grandTotal}</Text>
+          <Text style={{ ...styles.scoreCardValueBlue, color: cls.text }}>{computedResult.grandTotal}</Text>
           <Text style={styles.scoreCardMax}>out of 48</Text>
         </View>
       </View>
 
-      {/* Classification */}
-      <Text style={styles.sectionSubtitle}>Talent Classification</Text>
-      <View style={{ ...styles.classPill, backgroundColor: cls.bg, borderColor: cls.border }}>
+      {/* 2. Manager's Comments */}
+      <Text style={styles.sectionSubtitle}>Manager&apos;s Comments</Text>
+      <View style={styles.commentsBox}>
+        <Text style={styles.commentsText}>
+          {assessment.managerComments
+            ? assessment.managerComments
+            : "No manager commentary was recorded for this assessment cycle."}
+        </Text>
+      </View>
+
+      {/* 3. Potential Classification */}
+      <Text style={{ ...styles.sectionSubtitle, marginTop: 8, marginBottom: 6 }}>Potential Classification</Text>
+      <View style={{ ...styles.classPill, backgroundColor: cls.bg, borderColor: cls.border, marginBottom: 6 }}>
+        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: cls.text, marginRight: 6 }} />
         <Text style={{ ...styles.classPillText, color: cls.text }}>
-          ● {"  "}{computedResult.classificationCategory}
+          {computedResult.classificationCategory}
           {computedResult.isHiPoException ? "  (HiPo Exception)" : ""}
         </Text>
       </View>
-      <View style={styles.commentsBox}>
-        <Text style={styles.commentsText}>{computedResult.classificationDescription}</Text>
-      </View>
+      {(() => {
+        const activeKey = getActiveBandKey(computedResult.grandTotal, computedResult.isHiPoException);
+        return (
+          <View style={{
+            borderWidth: 1,
+            borderColor: C.SLATE_300,
+            borderRadius: 6,
+            overflow: "hidden",
+            marginBottom: 10,
+          }}>
+            <View style={{
+              flexDirection: "row",
+              backgroundColor: C.SLATE_100,
+              paddingVertical: 7,
+              paddingHorizontal: 10,
+              borderBottomWidth: 1,
+              borderBottomColor: C.SLATE_300,
+            }}>
+              <Text style={{ width: "14%", fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.SLATE_700 }}>TOTAL SCORE</Text>
+              <Text style={{ width: "24%", fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.SLATE_700 }}>POTENTIAL CLASSIFICATION</Text>
+              <Text style={{ width: "62%", fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.SLATE_700 }}>
+                DESCRIPTION &amp; BROAD TALENT MANAGEMENT APPROACH
+              </Text>
+            </View>
+            {POTENTIAL_BANDS.map((band, idx) => {
+              const isActive = band.key === activeKey;
+              return (
+                <View
+                  key={band.key}
+                  style={{
+                    flexDirection: "row",
+                    paddingVertical: 8,
+                    paddingHorizontal: 10,
+                    backgroundColor: isActive ? cls.bg : C.WHITE,
+                    borderBottomWidth: idx < POTENTIAL_BANDS.length - 1 ? 1 : 0,
+                    borderBottomColor: C.SLATE_200,
+                    borderLeftWidth: isActive ? 4 : 0,
+                    borderLeftColor: cls.text,
+                  }}
+                >
+                  <Text style={{
+                    width: "14%",
+                    fontSize: 8.5,
+                    fontFamily: isActive ? "Helvetica-Bold" : "Helvetica",
+                    color: isActive ? cls.text : C.SLATE_600,
+                    paddingRight: 4,
+                  }}>
+                    {band.range}
+                  </Text>
+                  <Text style={{
+                    width: "24%",
+                    fontSize: 8.5,
+                    fontFamily: isActive ? "Helvetica-Bold" : "Helvetica",
+                    color: isActive ? cls.text : C.SLATE_700,
+                    paddingRight: 8,
+                  }}>
+                    {band.classification}
+                  </Text>
+                  <Text style={{
+                    width: "62%",
+                    fontSize: 8,
+                    fontFamily: isActive ? "Helvetica-Bold" : "Helvetica",
+                    color: isActive ? C.NAVY : C.SLATE_600,
+                    lineHeight: 1.45,
+                  }}>
+                    {band.approach}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        );
+      })()}
 
-      {/* Employee info grid */}
-      <Text style={styles.sectionSubtitle}>Employee Details</Text>
-      <View style={styles.infoGrid}>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>Full Name</Text>
-          <Text style={styles.infoValue}>{employee.name}</Text>
-        </View>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>Employee ID</Text>
-          <Text style={styles.infoValue}>{employee.id}</Text>
-        </View>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>Designation</Text>
-          <Text style={styles.infoValueLight}>{employee.designation}</Text>
-        </View>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>Department</Text>
-          <Text style={styles.infoValueLight}>{employee.department}</Text>
-        </View>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>Entity</Text>
-          <Text style={styles.infoValueLight}>{employee.entity}</Text>
-        </View>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>Location</Text>
-          <Text style={styles.infoValueLight}>{employee.location}</Text>
-        </View>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>Direct Manager</Text>
-          <Text style={styles.infoValue}>{employee.managerName}</Text>
-        </View>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>HRBP</Text>
-          <Text style={styles.infoValueLight}>{employee.hrbpName || "—"}</Text>
-        </View>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>Impact Level</Text>
-          <Text style={styles.infoValueLight}>{employee.impactLevel}</Text>
-        </View>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>Submitted</Text>
-          <Text style={styles.infoValueLight}>
-            {assessment.submittedAt
-              ? new Date(assessment.submittedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-              : "—"}
-          </Text>
-        </View>
-      </View>
-
-      {/* Section score breakdown bars */}
-      <Text style={styles.sectionSubtitle}>Section Performance Breakdown</Text>
+      {/* 4. Section Performance Breakdown (compact at bottom, including Total) */}
+      <Text style={{ ...styles.sectionSubtitle, marginTop: 6, marginBottom: 5 }}>Section Performance Breakdown</Text>
       {(
         [
-          { label: "Ability",     score: computedResult.abilitySum,     max: 16 },
-          { label: "Aspiration",  score: computedResult.aspirationSum,  max: 16 },
-          { label: "Leadership",  score: computedResult.leadershipSum,  max: 16 },
+          { label: "Ability",     score: computedResult.abilitySum,     max: 16, isTotal: false },
+          { label: "Aspiration",  score: computedResult.aspirationSum,  max: 16, isTotal: false },
+          { label: "Leadership",  score: computedResult.leadershipSum,  max: 16, isTotal: false },
+          { label: "Total",       score: computedResult.grandTotal,     max: 48, isTotal: true },
         ] as const
-      ).map(({ label, score, max }) => {
-        const pct = max > 0 ? (score / max) : 0;
+      ).map(({ label, score, max, isTotal }) => {
+        const pct = max > 0 ? Math.round((score / max) * 100) : 0;
         return (
-          <View key={label} style={{ marginBottom: 10 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-              <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.SLATE_700 }}>{label}</Text>
-              <Text style={{ fontSize: 8, color: C.SLATE_500 }}>{score} / {max}</Text>
+          <View key={label} style={{ marginBottom: 6 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 2 }}>
+              <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: isTotal ? C.BLUE : C.SLATE_700 }}>
+                {label}
+              </Text>
+              <Text style={{ fontSize: 7.5, fontFamily: isTotal ? "Helvetica-Bold" : "Helvetica", color: isTotal ? C.BLUE : C.SLATE_500 }}>
+                {score} / {max} ({pct}%)
+              </Text>
             </View>
-            {/* Bar track */}
-            <View style={{ height: 7, backgroundColor: C.SLATE_100, borderRadius: 4 }}>
-              {/* Bar fill */}
+            <View style={{ height: 5, backgroundColor: C.SLATE_100, borderRadius: 3 }}>
               <View style={{
-                height: 7,
-                width: `${Math.round(pct * 100)}%`,
-                backgroundColor: C.BLUE,
-                borderRadius: 4,
+                height: 5,
+                width: `${pct}%`,
+                backgroundColor: isTotal ? C.NAVY : C.BLUE,
+                borderRadius: 3,
               }} />
             </View>
           </View>
@@ -693,7 +834,9 @@ function SummaryPage({ employee, assessment }: { employee: ExportEmployee; asses
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPETENCY MATRIX PAGE
 // ─────────────────────────────────────────────────────────────────────────────
-function CompetencyPage({ employee, assessment }: { employee: ExportEmployee; assessment: ExportEmployee["assessment"] }) {
+export function EmployeeCompetencyPage({ employee, assessment }: { employee: ExportEmployee; assessment: ExportEmployee["assessment"] }) {
+  const cycle = formatAssessmentCycle(assessment.cycle);
+  const submitter = formatSubmitter(employee, assessment);
   const sections: Array<{ key: keyof typeof SUB_DIMENSIONS; label: string }> = [
     { key: "ability",    label: "Ability" },
     { key: "aspiration", label: "Aspiration" },
@@ -704,27 +847,35 @@ function CompetencyPage({ employee, assessment }: { employee: ExportEmployee; as
     <Page size="A4" style={styles.page}>
       {/* Fixed header */}
       <View fixed style={styles.fixedHeader}>
-        <Text style={styles.fixedHeaderLeft}>Talent Assessment Report  ·  {assessment.cycle}</Text>
-        <Text style={styles.fixedHeaderRight}>{employee.name}  ·  {employee.id}</Text>
+        <Text style={styles.fixedHeaderLeft}>{COMPANY_NAME} - {APP_NAME.toUpperCase()}  ·  {cycle}</Text>
+        <Text style={styles.fixedHeaderRight}>{employee.name}</Text>
       </View>
 
       {/* Fixed footer */}
       <View fixed style={styles.fixedFooter}>
-        <Text style={styles.fixedFooterLeft}>
-          STRICTLY CONFIDENTIAL  ·  {employee.entity}  ·  {assessment.cycle}
-        </Text>
+        <View>
+          <Text style={styles.fixedFooterLeft}>
+            STRICTLY CONFIDENTIAL  ·  {employee.entity}  ·  {cycle}
+          </Text>
+          <Text style={{ fontSize: 6, color: C.SLATE_400, marginTop: 1 }}>
+            Submitted: {formatSubmittedDateTime(assessment.submittedAt)}
+          </Text>
+        </View>
         <Text
           style={styles.fixedFooterRight}
           render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
         />
       </View>
 
-      <Text style={styles.sectionTitle}>Competency Assessment Matrix</Text>
+      <Text style={{ fontSize: 6.8, color: C.SLATE_500, textAlign: "right", marginBottom: 4 }}>
+        Line Manager: {submitter.display}
+      </Text>
+      <Text style={styles.sectionTitle}>TALENT POTENTIAL ASSESSMENT</Text>
 
       {/* Table header */}
       <View style={styles.compTableHeader}>
         <Text style={{ ...styles.compTableHeaderText, ...styles.compColId }}>#</Text>
-        <Text style={{ ...styles.compTableHeaderText, ...styles.compColName }}>Competency</Text>
+        <Text style={{ ...styles.compTableHeaderText, ...styles.compColName }}>Behavioural Indicators</Text>
         <Text style={{ ...styles.compTableHeaderText, ...styles.compColScore }}>Score</Text>
         <Text style={{ ...styles.compTableHeaderText, ...styles.compColRating }}>Rating</Text>
         <Text style={{ ...styles.compTableHeaderText, ...styles.compColEvidence }}>Manager's Observation</Text>
@@ -744,7 +895,7 @@ function CompetencyPage({ employee, assessment }: { employee: ExportEmployee; as
 
             {dims.map((dim, idx) => {
               const score = scoresForSection[dim.id] ?? 0;
-              const scoreColors = scoreBg(score);
+              const scoreColors = scoreBg();
               const rowStyle = idx % 2 === 0 ? styles.compRow : styles.compRowAlt;
               const evidenceText = evidence[dim.id] ? truncate(evidence[dim.id]) : "—";
               const ratingLabel = score > 0 ? (RATING_SHORT_LABELS[score as 1 | 2 | 3 | 4] || "—") : "Not Rated";
@@ -784,121 +935,7 @@ function CompetencyPage({ employee, assessment }: { employee: ExportEmployee; as
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FEEDBACK & METADATA PAGE
-// ─────────────────────────────────────────────────────────────────────────────
-function FeedbackPage({ employee, assessment }: { employee: ExportEmployee; assessment: ExportEmployee["assessment"] }) {
-  const generatedDate = new Date().toLocaleDateString("en-IN", {
-    day: "2-digit", month: "long", year: "numeric",
-  });
-
-  return (
-    <Page size="A4" style={styles.page}>
-      {/* Fixed header */}
-      <View fixed style={styles.fixedHeader}>
-        <Text style={styles.fixedHeaderLeft}>Talent Assessment Report  ·  {assessment.cycle}</Text>
-        <Text style={styles.fixedHeaderRight}>{employee.name}  ·  {employee.id}</Text>
-      </View>
-
-      {/* Fixed footer */}
-      <View fixed style={styles.fixedFooter}>
-        <Text style={styles.fixedFooterLeft}>
-          STRICTLY CONFIDENTIAL  ·  {employee.entity}  ·  {assessment.cycle}
-        </Text>
-        <Text
-          style={styles.fixedFooterRight}
-          render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
-        />
-      </View>
-
-      {/* Manager Feedback */}
-      <Text style={styles.sectionTitle}>Manager's Assessment Commentary</Text>
-
-      <View style={{ marginBottom: 8, flexDirection: "row", alignItems: "center" }}>
-        <View style={{ width: 3, height: 14, backgroundColor: C.BLUE, borderRadius: 2, marginRight: 8 }} />
-        <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: C.SLATE_700 }}>
-          Assessed by {employee.managerName}
-        </Text>
-      </View>
-
-      <View style={styles.commentsBox}>
-        <Text style={styles.commentsText}>
-          {assessment.managerComments
-            ? assessment.managerComments
-            : "No manager commentary was recorded for this assessment cycle."}
-        </Text>
-      </View>
-
-      {/* Classification rationale */}
-      <Text style={styles.sectionSubtitle}>Classification Rationale</Text>
-      <View style={styles.commentsBox}>
-        <Text style={styles.commentsText}>
-          {assessment.computedResult.classificationDescription}
-        </Text>
-      </View>
-
-      {/* Review metadata */}
-      <Text style={styles.sectionSubtitle}>Review Metadata</Text>
-      <View style={{
-        borderWidth: 1,
-        borderColor: C.SLATE_200,
-        borderRadius: 6,
-        overflow: "hidden",
-        marginBottom: 16,
-      }}>
-        {[
-          ["Assessment Cycle",       assessment.cycle],
-          ["Assessment Status",      "Completed"],
-          ["Direct Manager",         employee.managerName],
-          ["HRBP",                   employee.hrbpName || "—"],
-          ["Classification",         assessment.computedResult.classificationCategory],
-          ["HiPo Exception",         assessment.computedResult.isHiPoException ? "Yes" : "No"],
-          ["Submission Date",        assessment.submittedAt
-            ? new Date(assessment.submittedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
-            : "—"],
-          ["Report Generated",       generatedDate],
-        ].map(([label, value], i) => (
-          <View key={label} style={{
-            flexDirection:     "row",
-            paddingHorizontal: 12,
-            paddingVertical:   7,
-            backgroundColor:   i % 2 === 0 ? C.SLATE_50 : C.WHITE,
-            borderBottomWidth: i < 7 ? 1 : 0,
-            borderBottomColor: C.SLATE_100,
-          }}>
-            <Text style={{ width: "40%", fontSize: 8, color: C.SLATE_500, fontFamily: "Helvetica-Bold" }}>
-              {label}
-            </Text>
-            <Text style={{ width: "60%", fontSize: 8, color: C.NAVY }}>
-              {value}
-            </Text>
-          </View>
-        ))}
-      </View>
-
-      {/* Final confidential notice */}
-      <View style={{
-        backgroundColor: "#FFF1F2",
-        borderWidth: 1,
-        borderColor: "#FECDD3",
-        borderRadius: 6,
-        padding: 10,
-        marginTop: 8,
-      }}>
-        <Text style={{ fontSize: 7.5, color: C.ROSE, fontFamily: "Helvetica-Bold", marginBottom: 3 }}>
-          CONFIDENTIALITY NOTICE
-        </Text>
-        <Text style={{ fontSize: 7.5, color: "#9F1239", lineHeight: 1.6 }}>
-          This document contains confidential and proprietary information belonging to {employee.entity} and its affiliates.
-          It is intended solely for the use of authorised HR personnel. Any reproduction, distribution, or disclosure
-          of this information to unauthorised parties is strictly prohibited.
-        </Text>
-      </View>
-    </Page>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN EXPORT
+// MAIN EXPORT (3 Pages: Cover, Executive Summary, Competency Matrix)
 // ─────────────────────────────────────────────────────────────────────────────
 export function EmployeeAppraisalTemplate({
   employee,
@@ -907,18 +944,19 @@ export function EmployeeAppraisalTemplate({
 }) {
   const assessment = employee.assessment;
 
+  const cycle = formatAssessmentCycle(assessment.cycle);
+
   return (
     <Document
-      title={`Talent Assessment Report — ${employee.name} — ${assessment.cycle}`}
+      title={`Talent Assessment Report — ${employee.name} — ${cycle}`}
       author={employee.entity}
       subject="Confidential Talent Assessment Report"
       creator="Talent Management Platform"
       producer="Talent Management Platform"
     >
-      <CoverPage       employee={employee} assessment={assessment} />
-      <SummaryPage     employee={employee} assessment={assessment} />
-      <CompetencyPage  employee={employee} assessment={assessment} />
-      <FeedbackPage    employee={employee} assessment={assessment} />
+      <CoverPage              employee={employee} assessment={assessment} />
+      <EmployeeSummaryPage    employee={employee} assessment={assessment} />
+      <EmployeeCompetencyPage employee={employee} assessment={assessment} />
     </Document>
   );
 }
