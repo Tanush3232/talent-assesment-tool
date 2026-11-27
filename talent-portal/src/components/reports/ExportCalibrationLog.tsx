@@ -5,7 +5,7 @@ import { Download, Loader2, FileSpreadsheet } from "lucide-react";
 import ExcelJS from "exceljs";
 import { toast } from "sonner";
 import { computeFullAssessmentResult } from "@/lib/scoring";
-import { SUB_DIMENSIONS, formatAssessmentCycle } from "@/lib/constants";
+import { SUB_DIMENSIONS, formatAssessmentCycle, getClassificationTheme } from "@/lib/constants";
 
 const ALL_SUB_DIMS = [
   ...SUB_DIMENSIONS.ability,
@@ -106,13 +106,15 @@ export default function ExportCalibrationLog({ data }: { data: any[] }) {
           row.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFF" } };
         }
 
-        // Color the classification cell
+        // Color the classification cell consistently with the classification theme
         const classCell = row.getCell("classification");
-        if (result.classification.category === "High Potential (HiPo)") {
-          classCell.font = { bold: true, color: { argb: "FF1E3A8A" } };
-        } else if (result.classification.category === "Promotable/Expandable") {
-          classCell.font = { bold: true, color: { argb: "FF166534" } };
-        }
+        const { excel } = getClassificationTheme(result.classification.category);
+        classCell.font = { bold: true, color: { argb: excel.fontArgb } };
+        classCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: excel.fillArgb },
+        };
       });
 
       // Freeze first row

@@ -1,83 +1,54 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FILE NAMING UTILITIES
-// Conventions:
-//   Individual PDF:  EMP001_Arjun_Mehta_Engineering_R_D_AdventzCorporateCoE.pdf
-//   Individual ZIP:  AdventzCorporateCoE_Employee_Appraisal_Reports_2026-07-08.zip
-//   Manager ZIP:     AdventzCorporateCoE_Manager_Sandeep_Sharma_Portal_2026-07-08.zip
+// FILE & ZIP NAMING UTILITIES
+// Produces concise filenames (especially ZIP archives and bundled PDFs) to
+// avoid Windows MAX_PATH extraction errors.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Sanitize a string for use in a filename:
- * - Replaces spaces and any non-alphanumeric/hyphen/underscore chars with _
- * - Collapses consecutive underscores
- * - Trims leading/trailing underscores
- */
-export function sanitizeName(str: string): string {
-  return str
+import type { ExportEmployee } from "@/types/export-report";
+
+/** Replace characters unsafe in filenames with underscores, collapsing multiples. */
+export function sanitizeName(raw: string): string {
+  return raw
     .trim()
-    .replace(/[^a-zA-Z0-9\-]/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
+    .replace(/[^a-zA-Z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "") || "Report";
 }
 
-/**
- * Generates the PDF filename for an individual employee report.
- * Pattern: {EmpId}_{Name}_{Department}_{Entity}.pdf
- */
-export function employeePdfName(employee: {
-  id: string;
-  name: string;
-  department: string;
-  entity: string;
-}): string {
-  const id = sanitizeName(employee.id);
-  const name = sanitizeName(employee.name);
-  const dept = sanitizeName(employee.department);
-  const entity = sanitizeName(employee.entity);
-  return `${id}_${name}_${dept}_${entity}.pdf`;
+/** Concise individual PDF filename so extracted ZIP paths stay short on Windows. */
+export function employeePdfName(employee: Pick<ExportEmployee, "id" | "name">): string {
+  const safeId = sanitizeName(employee.id);
+  const safeName = sanitizeName(employee.name).slice(0, 32);
+  return `${safeId}_${safeName}.pdf`;
 }
 
-/**
- * Generates the ZIP filename for a batch employee export.
- * Uses the entity name dynamically. Falls back to "Adventz_Group" for mixed-entity exports.
- */
-export function zipName(entity?: string): string {
-  const date = new Date().toISOString().split("T")[0];
-  const prefix = entity ? sanitizeName(entity) : "Adventz_Group";
-  return `${prefix}_Employee_Appraisal_Reports_${date}.zip`;
+/** Resolve common entity when employees share one; returns null otherwise. */
+export function resolveZipEntity(entities: Array<string | null | undefined>): string | null {
+  const unique = Array.from(
+    new Set(entities.map((e) => (e || "").trim()).filter(Boolean))
+  );
+  return unique.length === 1 ? unique[0] : null;
 }
 
-/**
- * Generates the ZIP filename for a manager portal export.
- */
-export function managerZipName(managerName: string, entity?: string): string {
-  const date = new Date().toISOString().split("T")[0];
-  const mgr = sanitizeName(managerName);
-  const prefix = entity ? sanitizeName(entity) : "Adventz_Group";
-  return `${prefix}_Manager_${mgr}_Portal_${date}.zip`;
+/** Short ZIP filename for individual appraisals export (`ZIL_Potential.zip`). */
+export function zipName(_entity?: string | null): string {
+  return "ZIL_Potential.zip";
 }
 
-/**
- * Deduplicates filenames in an array by appending _2, _3, etc. to collisions.
- */
+/** Short ZIP filename for Manager Portal export (`ZIL_Potential_<Manager>.zip`). */
+export function managerZipName(managerName: string, _entity?: string | null): string {
+  const shortMgr = sanitizeName(managerName).slice(0, 24);
+  return `ZIL_Potential_${shortMgr}.zip`;
+}
+
+/** Ensure no duplicate filenames exist inside a ZIP archive. */
 export function deduplicateFilenames(names: string[]): string[] {
   const seen = new Map<string, number>();
   return names.map((name) => {
-    const existing = seen.get(name) ?? 0;
-    seen.set(name, existing + 1);
-    if (existing === 0) return name;
+    const count = seen.get(name) ?? 0;
+    seen.set(name, count + 1);
+    if (count === 0) return name;
     const dotIdx = name.lastIndexOf(".");
-    const base = dotIdx >= 0 ? name.slice(0, dotIdx) : name;
-    const ext = dotIdx >= 0 ? name.slice(dotIdx) : "";
-    return `${base}_${existing + 1}${ext}`;
+    if (dotIdx === -1) return `${name}_${count + 1}`;
+    return `${name.slice(0, dotIdx)}_${count + 1}${name.slice(dotIdx)}`;
   });
-}
-
-/**
- * Determine entity label for ZIP naming when employees may span multiple entities.
- * Returns the single entity if all match, or undefined (falls back to "Adventz_Group").
- */
-export function resolveZipEntity(entities: string[]): string | undefined {
-  const unique = [...new Set(entities)];
-  return unique.length === 1 ? unique[0] : undefined;
 }

@@ -19,8 +19,10 @@ const employeeSchema = z.object({
   impactLevel: z.string().trim().min(1, "Impact Level is required"),
   entity: z.string().trim().min(1, "Entity is required"),
   department: z.string().trim().min(1, "Department is required"),
+  function: z.string().trim().optional(),
   location: z.string().trim().min(1, "Location is required"),
   managerId: z.string().trim().min(1, "Manager ID is required"),
+  managerName: z.string().trim().min(1, "Manager Name is required"),
   managerEmail: z
     .string()
     .trim()
@@ -37,14 +39,18 @@ const MERGE_FIELDS = [
   "impactLevel",
   "entity",
   "department",
+  "function",
   "location",
   "managerId",
+  "managerName",
   "managerEmail",
   "hrbpName",
 ] as const;
 
 const isPlaceholder = (v?: string | null) =>
   !v || ["-", "--", "—", "n/a"].includes(v.trim().toLowerCase());
+
+const cleanOptional = (v?: string | null) => (isPlaceholder(v) ? null : v!.trim());
 
 type EmployeeInput = z.infer<typeof employeeSchema>;
 
@@ -71,7 +77,14 @@ export async function addSingleEmployee(data: EmployeeInput) {
       return { success: false, error: "An employee with this email already exists" };
     }
 
-    await prisma.employee.create({ data: { ...validated, createdBy: session.user.id } });
+    await prisma.employee.create({
+      data: {
+        ...validated,
+        function: cleanOptional(validated.function),
+        hrbpName: cleanOptional(validated.hrbpName),
+        createdBy: session.user.id,
+      },
+    });
     refresh();
     return { success: true };
   } catch (error: any) {
@@ -99,7 +112,12 @@ export async function updateEmployee(data: EmployeeInput) {
 
     await prisma.employee.update({
       where: { id },
-      data: { ...fields, hrbpName: fields.hrbpName || null, updatedBy: session.user.id },
+      data: {
+        ...fields,
+        function: cleanOptional(fields.function),
+        hrbpName: cleanOptional(fields.hrbpName),
+        updatedBy: session.user.id,
+      },
     });
     refresh();
     return { success: true };
@@ -183,7 +201,10 @@ export async function bulkUploadEmployees(employees: EmployeeInput[]) {
           if (prev) {
             const patch: Record<string, string | null> = {};
             for (const field of MERGE_FIELDS) {
-              const nextVal = field === "hrbpName" ? (emp.hrbpName || null) : emp[field];
+              const nextVal =
+                field === "hrbpName" || field === "function"
+                  ? cleanOptional(emp[field])
+                  : emp[field];
               const prevVal = prev[field] ?? null;
               // Never overwrite real existing data with a "-" placeholder or blank
               if (isPlaceholder(nextVal) && !isPlaceholder(prevVal)) continue;
@@ -200,7 +221,12 @@ export async function bulkUploadEmployees(employees: EmployeeInput[]) {
             }
           } else {
             await tx.employee.create({
-              data: { ...emp, hrbpName: emp.hrbpName || null, createdBy: session.user.id },
+              data: {
+                ...emp,
+                function: cleanOptional(emp.function),
+                hrbpName: cleanOptional(emp.hrbpName),
+                createdBy: session.user.id,
+              },
             });
             added++;
           }

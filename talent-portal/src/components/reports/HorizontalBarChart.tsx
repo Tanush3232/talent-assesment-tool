@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { getClassificationTheme } from "@/lib/constants";
 
 type Distribution = {
   hipo: number;
@@ -20,6 +20,10 @@ export default function HorizontalBarChart({ distribution }: { distribution: Dis
   const wpPct = total > 0 ? (distribution.wellPlaced / total) * 100 : 0;
   const exPct = total > 0 ? (hipoException / total) * 100 : 0;
 
+  const hipoUi = getClassificationTheme("High Potential").ui;
+  const proUi = getClassificationTheme("Promotable").ui;
+  const wpUi = getClassificationTheme("Well-placed").ui;
+
   return (
     <div className="w-full space-y-6">
       <div className="flex flex-col gap-1">
@@ -35,12 +39,12 @@ export default function HorizontalBarChart({ distribution }: { distribution: Dis
         <div className="space-y-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="text-zuari-blue">High Potential (HiPo)</span>
+              <span className={hipoUi.label}>High Potential (HiPo)</span>
               <span className="text-slate-900">{distribution.hipo} ({Math.round(hipoPct)}%)</span>
             </div>
             <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-zuari-blue rounded-full transition-all duration-1000 ease-out"
+                className={`h-full ${hipoUi.bar} rounded-full transition-all duration-1000 ease-out`}
                 style={{ width: `${hipoPct}%` }}
               />
             </div>
@@ -48,12 +52,12 @@ export default function HorizontalBarChart({ distribution }: { distribution: Dis
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="text-emerald-600">Promotable / Expandable</span>
+              <span className={proUi.label}>Promotable / Expandable</span>
               <span className="text-slate-900">{purePromotable} ({Math.round(proPct)}%)</span>
             </div>
             <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out"
+                className={`h-full ${proUi.bar} rounded-full transition-all duration-1000 ease-out`}
                 style={{ width: `${proPct}%` }}
               />
             </div>
@@ -76,12 +80,12 @@ export default function HorizontalBarChart({ distribution }: { distribution: Dis
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="text-slate-500">Well-placed</span>
+              <span className={wpUi.label}>Well-placed</span>
               <span className="text-slate-900">{distribution.wellPlaced} ({Math.round(wpPct)}%)</span>
             </div>
             <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-slate-400 rounded-full transition-all duration-1000 ease-out"
+                className={`h-full ${wpUi.bar} rounded-full transition-all duration-1000 ease-out`}
                 style={{ width: `${wpPct}%` }}
               />
             </div>

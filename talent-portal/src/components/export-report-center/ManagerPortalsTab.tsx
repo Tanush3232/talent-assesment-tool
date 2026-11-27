@@ -19,14 +19,12 @@ import {
 } from "@/lib/pdf/fileNaming";
 import { EmployeeAppraisalTemplate } from "@/lib/pdf/templates/EmployeeAppraisalTemplate";
 import { ManagerCombinedTemplate } from "@/lib/pdf/templates/ManagerCombinedTemplate";
+import { getClassificationTheme } from "@/lib/constants";
 
 // ── Classification pill styles ────────────────────────────────────────────────
 function classPill(category: string) {
-  if (category.includes("High Potential"))
-    return { pill: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500" };
-  if (category.includes("Promotable"))
-    return { pill: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" };
-  return { pill: "bg-slate-100 text-slate-600 border-slate-200", dot: "bg-slate-400" };
+  const { ui } = getClassificationTheme(category);
+  return { pill: ui.pill, dot: ui.dot };
 }
 
 const PDF_FOOTPRINT = "~4 Pages (A4)";
@@ -85,8 +83,8 @@ function ManagerReportRow({
           <span className="text-[10px] opacity-70">({computedResult.grandTotal})</span>
         </div>
         {computedResult.isHiPoException && (
-          <span className="ml-1.5 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
-            ⚡ Exception
+          <span className="ml-1.5 text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+            HiPo Exception
           </span>
         )}
       </td>

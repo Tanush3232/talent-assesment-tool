@@ -107,6 +107,66 @@ export const ASSESSMENT_CYCLE = "FY2026-27";
 
 export const COMPANY_NAME = "ZUARI INDUSTRIES LIMITED";
 export const APP_NAME = "Talent Assessment Portal";
+export const PDF_APP_NAME = "Talent Potential Assessment Tool";
+
+export const CLASSIFICATION_THEME = {
+  HIPO: {
+    pdf:   { bg: "#F3E8FF", text: "#6B21A8", border: "#D8B4FE", dot: "#7E22CE" },
+    excel: { fontArgb: "FF6B21A8", fillArgb: "FFF3E8FF" },
+    ui: {
+      pill: "bg-purple-50 text-purple-700 border-purple-200",
+      dot: "bg-purple-600",
+      bar: "bg-purple-500",
+      label: "text-purple-700",
+      card: "border-purple-200 bg-purple-50",
+      cardText: "text-purple-800",
+    },
+  },
+  PROMOTABLE: {
+    pdf:   { bg: "#FFEDD5", text: "#C2410C", border: "#FDBA74", dot: "#EA580C" },
+    excel: { fontArgb: "FFC2410C", fillArgb: "FFFFEDD5" },
+    ui: {
+      pill: "bg-orange-50 text-orange-700 border-orange-200",
+      dot: "bg-orange-500",
+      bar: "bg-orange-500",
+      label: "text-orange-700",
+      card: "border-orange-200 bg-orange-50",
+      cardText: "text-orange-800",
+    },
+  },
+  WELL_PLACED: {
+    pdf:   { bg: "#DCFCE7", text: "#15803D", border: "#86EFAC", dot: "#16A34A" },
+    excel: { fontArgb: "FF15803D", fillArgb: "FFDCFCE7" },
+    ui: {
+      pill: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      dot: "bg-emerald-500",
+      bar: "bg-emerald-500",
+      label: "text-emerald-700",
+      card: "border-emerald-200 bg-emerald-50",
+      cardText: "text-emerald-700",
+    },
+  },
+  PENDING: {
+    pdf:   { bg: "#F1F5F9", text: "#334155", border: "#CBD5E1", dot: "#64748B" },
+    excel: { fontArgb: "FF334155", fillArgb: "FFF1F5F9" },
+    ui: {
+      pill: "bg-slate-100 text-slate-600 border-slate-200",
+      dot: "bg-slate-400",
+      bar: "bg-slate-400",
+      label: "text-slate-600",
+      card: "border-slate-200 bg-slate-50",
+      cardText: "text-slate-700",
+    },
+  },
+} as const;
+
+export function getClassificationTheme(category?: string | null) {
+  if (!category) return CLASSIFICATION_THEME.PENDING;
+  if (category.includes("High Potential")) return CLASSIFICATION_THEME.HIPO;
+  if (category.includes("Promotable")) return CLASSIFICATION_THEME.PROMOTABLE;
+  if (category.includes("Well-placed")) return CLASSIFICATION_THEME.WELL_PLACED;
+  return CLASSIFICATION_THEME.PENDING;
+}
 
 export function formatAssessmentCycle(cycle?: string | null): string {
   return !cycle || cycle === "FY2026" ? ASSESSMENT_CYCLE : cycle;

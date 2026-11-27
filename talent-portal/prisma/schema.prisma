@@ -67,8 +67,10 @@ model Employee {
   impactLevel   String                  // High / Critical / Medium / Low / custom
   entity        String                  // Zuari Industries Ltd, Adventz Corporate CoE, etc.
   department    String
+  function      String?                 // Optional business function (shown as — when omitted)
   location      String                  // Dynamic — whatever is entered
   managerId     String                  // References User.id for a manager
+  managerName   String?                 // Required in app/upload; nullable for zero-downtime backfill
   managerEmail  String
   hrbpName      String?                 // HRBP assigned to this employee
   isActive      Boolean  @default(true)

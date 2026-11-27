@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { assessmentSubmitSchema } from "@/lib/validators";
-import { SUB_DIMENSIONS } from "@/lib/constants";
-import { calculateSectionScore, computeFullAssessmentResult } from "@/lib/scoring";
+import { SUB_DIMENSIONS, getClassificationTheme } from "@/lib/constants";
+import { calculateSectionScore, computeFullAssessmentResult, getUniformSectionRating, type SectionKey } from "@/lib/scoring";
 import { saveAssessmentDraft, submitAssessment } from "@/app/actions/assessment";
 import { CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Save, Send, AlertCircle, RefreshCw, Lock, AlertTriangle, XCircle } from "lucide-react";
+import { CheckCircle2, Save, Send, AlertCircle, RefreshCw, Lock, AlertTriangle, XCircle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+
+const TABS_ORDER = ["guidelines", "ability", "aspiration", "leadership", "overall"] as const;
+const isSectionKey = (tab: string): tab is SectionKey =>
+  tab === "ability" || tab === "aspiration" || tab === "leadership";
 
 type AssessmentFormProps = {
   employee: any;
@@ -46,9 +50,22 @@ export default function AssessmentForm({ employee, initialData, isReadOnly = fal
     aspiration: initialData?.scores?.aspiration || {},
     leadership: initialData?.scores?.leadership || {},
   }));
+  const latestScoresRef = useRef(selectedScores);
+  latestScoresRef.current = selectedScores;
+
+  const isSavingRef = useRef(false);
+  const pendingResaveRef = useRef(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [showLowScoreModal, setShowLowScoreModal] = useState(false);
   const [modalItems, setModalItems] = useState<any[]>([]);
+  // Ephemeral per-visit acknowledgment so Leaving/Next Session re-arms the warning
+  const [acknowledgedUniform, setAcknowledgedUniform] = useState<Partial<Record<SectionKey, boolean>>>({});
+  const [uniformPrompt, setUniformPrompt] = useState<{
+    section: SectionKey;
+    rating: number;
+    targetTab: string;
+  } | null>(null);
 
   const defaultValues = {
     scores: {
@@ -67,7 +84,7 @@ export default function AssessmentForm({ employee, initialData, isReadOnly = fal
     mode: "onChange",
   });
 
-  const { watch, control, handleSubmit, formState: { errors, isDirty } } = form;
+  const { watch, control, handleSubmit, formState: { errors } } = form;
   const watchEvidence = watch("evidence");
   const watchComments = watch("managerComments");
 
@@ -88,9 +105,10 @@ export default function AssessmentForm({ employee, initialData, isReadOnly = fal
   }, [showLowScoreModal]);
   
   // Section completion check
-  const checkSectionComplete = (categoryId: "ability" | "aspiration" | "leadership") =>
+  const checkSectionComplete = (categoryId: SectionKey) =>
     SUB_DIMENSIONS[categoryId].every((q) => {
-      const hasScore = selectedScores[categoryId]?.[q.id] !== undefined;
+      const score = selectedScores[categoryId]?.[q.id];
+      const hasScore = typeof score === "number" && score >= 1 && score <= 4;
       const evLen = (watchEvidence?.[q.id.replace(".", "_")] || "").trim().length;
       return hasScore && evLen >= 40 && evLen <= 150;
     });
@@ -99,60 +117,152 @@ export default function AssessmentForm({ employee, initialData, isReadOnly = fal
   const isAspirationComplete = checkSectionComplete("aspiration");
   const isLeadershipComplete = checkSectionComplete("leadership");
 
-  const TABS_ORDER = ["guidelines", "ability", "aspiration", "leadership", "overall"];
+  const navigateToTab = (tab: string) => {
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleNext = (current: string) => {
-    const idx = TABS_ORDER.indexOf(current);
-    if (idx < TABS_ORDER.length - 1) setActiveTab(TABS_ORDER[idx + 1]);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const idx = TABS_ORDER.indexOf(current as (typeof TABS_ORDER)[number]);
+    if (idx >= 0 && idx < TABS_ORDER.length - 1) navigateToTab(TABS_ORDER[idx + 1]);
   };
   const handleBack = (current: string) => {
-    const idx = TABS_ORDER.indexOf(current);
-    if (idx > 0) setActiveTab(TABS_ORDER[idx - 1]);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const idx = TABS_ORDER.indexOf(current as (typeof TABS_ORDER)[number]);
+    if (idx > 0) navigateToTab(TABS_ORDER[idx - 1]);
   };
 
-  const handleNextAction = (categoryId: "ability" | "aspiration" | "leadership") => {
-    setAttemptNext((prev) => ({ ...prev, [categoryId]: true }));
-    const isComplete =
-      categoryId === "ability" ? isAbilityComplete : categoryId === "aspiration" ? isAspirationComplete : isLeadershipComplete;
-    if (isComplete) {
-      handleNext(categoryId);
-    } else {
+  const handleForwardFromSection = (fromSection: SectionKey, targetTab: string) => {
+    setAttemptNext((prev) => ({ ...prev, [fromSection]: true }));
+    if (!checkSectionComplete(fromSection)) {
       toast.error("Please complete all ratings and ensure evidence is 40–150 characters for each indicator.");
+      return;
+    }
+    const uniformRating = !isReadOnly ? getUniformSectionRating(fromSection, selectedScores) : null;
+    if (uniformRating !== null && !acknowledgedUniform[fromSection]) {
+      setUniformPrompt({ section: fromSection, rating: uniformRating, targetTab });
+      return;
+    }
+    navigateToTab(targetTab);
+  };
+
+  const handleNextAction = (categoryId: SectionKey) => {
+    const idx = TABS_ORDER.indexOf(categoryId);
+    if (idx >= 0 && idx < TABS_ORDER.length - 1) {
+      handleForwardFromSection(categoryId, TABS_ORDER[idx + 1]);
     }
   };
 
-  // Auto-save every 30s
-  useEffect(() => {
-    if (isReadOnly) return;
-    const interval = setInterval(async () => {
-      if (isDirty) await handleSaveDraft(form.getValues(), true);
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [isDirty, isReadOnly]);
+  const handleTabChange = (nextTab: string) => {
+    if (nextTab === activeTab) return;
+    const currentIdx = TABS_ORDER.indexOf(activeTab as (typeof TABS_ORDER)[number]);
+    const nextIdx = TABS_ORDER.indexOf(nextTab as (typeof TABS_ORDER)[number]);
+    if (nextIdx > currentIdx && isSectionKey(activeTab)) {
+      handleForwardFromSection(activeTab, nextTab);
+      return;
+    }
+    navigateToTab(nextTab);
+  };
 
-  const handleSaveDraft = async (data: any, silent = false) => {
-    if (isReadOnly) return;
-    setIsSaving(true);
-    const payload = {
-      ...data,
-      scores: selectedScores,
-      evidence: data.evidence
-        ? Object.fromEntries(Object.entries(data.evidence).map(([k, v]) => [k.replace("_", "."), v]))
-        : {},
+  const handleDismissUniformModal = () => {
+    if (!uniformPrompt) return;
+    const { section } = uniformPrompt;
+    setAcknowledgedUniform((prev) => ({ ...prev, [section]: true }));
+    setUniformPrompt(null);
+  };
+
+  const handleContinueUniformModal = () => {
+    if (!uniformPrompt) return;
+    const { section, targetTab } = uniformPrompt;
+    setAcknowledgedUniform((prev) => ({ ...prev, [section]: true }));
+    setUniformPrompt(null);
+    navigateToTab(targetTab);
+  };
+
+  const buildDraftPayload = useCallback((raw: any) => {
+    const cleanEvidence = Object.fromEntries(
+      Object.entries(raw?.evidence || {})
+        .filter(([, v]) => typeof v === "string")
+        .map(([k, v]) => [k.replace("_", "."), v])
+    );
+    return {
+      scores: latestScoresRef.current,
+      evidence: cleanEvidence,
+      managerComments: typeof raw?.managerComments === "string" ? raw.managerComments : "",
     };
+  }, []);
+
+  const handleSaveDraft = useCallback(async (data?: any, silent = false) => {
+    if (isReadOnly) return;
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    if (isSavingRef.current) {
+      pendingResaveRef.current = true;
+      return;
+    }
+
+    isSavingRef.current = true;
+    setIsSaving(true);
     try {
+      const payload = buildDraftPayload(data ?? form.getValues());
       await saveAssessmentDraft(employee.id, payload);
       setLastSaved(new Date());
-      form.reset(data, { keepValues: true });
       if (!silent) toast.success("Draft saved successfully");
     } catch {
       if (!silent) toast.error("Failed to save draft");
     } finally {
+      isSavingRef.current = false;
       setIsSaving(false);
+      if (pendingResaveRef.current) {
+        pendingResaveRef.current = false;
+        void handleSaveDraft(undefined, true);
+      }
     }
-  };
+  }, [buildDraftPayload, employee.id, form, isReadOnly]);
+
+  const scheduleAutoSave = useCallback(() => {
+    if (isReadOnly) return;
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      debounceTimerRef.current = null;
+      void handleSaveDraft(undefined, true);
+    }, 1200);
+  }, [handleSaveDraft, isReadOnly]);
+
+  // Auto-save whenever any form text field (evidence or partial managerComments) changes
+  useEffect(() => {
+    if (isReadOnly) return;
+    const subscription = watch((_values, { type }) => {
+      if (type) scheduleAutoSave();
+    });
+    return () => {
+      subscription.unsubscribe();
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [isReadOnly, scheduleAutoSave, watch]);
+
+  const updateScore = useCallback((categoryId: SectionKey, subId: string, rating: number) => {
+    if (isReadOnly) return;
+    if (latestScoresRef.current[categoryId]?.[subId] === rating) return;
+    const next = {
+      ...latestScoresRef.current,
+      [categoryId]: { ...latestScoresRef.current[categoryId], [subId]: rating },
+    };
+    latestScoresRef.current = next;
+    setSelectedScores(next);
+    setAcknowledgedUniform((prev) => {
+      if (!prev[categoryId]) return prev;
+      const updated = { ...prev };
+      delete updated[categoryId];
+      return updated;
+    });
+    form.setValue(`scores.${categoryId}.${subId.replace(".", "_")}`, rating, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+    scheduleAutoSave();
+  }, [form, isReadOnly, scheduleAutoSave]);
 
   const onSubmit = async (data: any) => {
     if (isReadOnly) return;
@@ -169,12 +279,20 @@ export default function AssessmentForm({ employee, initialData, isReadOnly = fal
       return;
     }
 
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
     setIsSubmitting(true);
     const payload = {
       ...data,
-      scores: selectedScores,
+      scores: latestScoresRef.current,
       evidence: data.evidence
-        ? Object.fromEntries(Object.entries(data.evidence).map(([k, v]) => [k.replace("_", "."), v]))
+        ? Object.fromEntries(
+            Object.entries(data.evidence)
+              .filter(([, v]) => typeof v === "string")
+              .map(([k, v]) => [k.replace("_", "."), v])
+          )
         : {},
     };
     try {
@@ -228,14 +346,7 @@ export default function AssessmentForm({ employee, initialData, isReadOnly = fal
             }
             onClick={() => {
               if (!isSelected && !isReadOnly) {
-                setSelectedScores((prev) => ({
-                  ...prev,
-                  [categoryId]: { ...prev[categoryId], [subId]: rating },
-                }));
-                form.setValue(`scores.${categoryId}.${subId.replace(".", "_")}`, rating, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                });
+                updateScore(categoryId, subId, rating);
               }
             }}
           >
@@ -453,7 +564,7 @@ export default function AssessmentForm({ employee, initialData, isReadOnly = fal
       {/* ── Main form ── */}
       <div className="lg:col-span-3">
         <form onSubmit={handleSubmit(onSubmit)}>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             {/* ── Tabs Navigation Card (Not sticky, white background) ── */}
             <div className="bg-white border border-slate-200 rounded-xl mb-6 shadow-sm overflow-hidden p-2">
               <TabsList 
@@ -634,20 +745,25 @@ export default function AssessmentForm({ employee, initialData, isReadOnly = fal
                   </div>
 
                   {/* Classification result */}
-                  <div className={`rounded-xl border p-5 ${result.classification.isHiPoException ? "border-amber-200 bg-amber-50/40" : hipoStatus === "High Potential (HiPo)" ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Official Potential Classification</p>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <p className={`text-2xl font-black ${result.classification.isHiPoException ? "text-amber-800" : hipoStatus === "High Potential (HiPo)" ? "text-emerald-700" : "text-slate-700"}`}>
-                        {hipoStatus}
-                      </p>
-                      {result.classification.isHiPoException && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-100 border border-amber-300 text-amber-700 px-2.5 py-1 rounded-full">
-                          <AlertTriangle className="w-3 h-3" />
-                          HiPo Exception
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  {(() => {
+                    const clsUi = getClassificationTheme(hipoStatus).ui;
+                    return (
+                      <div className={`rounded-xl border p-5 ${result.classification.isHiPoException ? "border-amber-200 bg-amber-50/40" : clsUi.card}`}>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Official Potential Classification</p>
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <p className={`text-2xl font-black ${result.classification.isHiPoException ? "text-amber-800" : clsUi.cardText}`}>
+                            {hipoStatus}
+                          </p>
+                          {result.classification.isHiPoException && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-100 border border-amber-300 text-amber-700 px-2.5 py-1 rounded-full">
+                              <AlertTriangle className="w-3 h-3" />
+                              HiPo Exception
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* ── HiPo Exception Warning Banner ── */}
                   {result.classification.isHiPoException && (
@@ -772,14 +888,11 @@ export default function AssessmentForm({ employee, initialData, isReadOnly = fal
                                                 disabled={isReadOnly}
                                                 onChange={(e) => {
                                                   const val = parseInt(e.target.value, 10);
-                                                  setSelectedScores((prev) => ({
-                                                    ...prev,
-                                                    [item.section]: { ...prev[item.section], [item.id]: val },
-                                                  }));
-                                                  form.setValue(`scores.${item.section}.${item.id.replace(".", "_")}`, val, {
-                                                    shouldValidate: true,
-                                                    shouldDirty: true,
-                                                  });
+                                                  updateScore(
+                                                    item.section as "ability" | "aspiration" | "leadership",
+                                                    item.id,
+                                                    val
+                                                  );
                                                 }}
                                                 className={cn(
                                                   "w-14 h-9 font-bold rounded-lg focus:outline-none focus:ring-2 cursor-pointer text-xs pl-3.5 pr-2 border transition-all",
@@ -906,6 +1019,79 @@ export default function AssessmentForm({ employee, initialData, isReadOnly = fal
           </Tabs>
         </form>
       </div>
+
+      {/* ── Uniform Rating Warning Modal ── */}
+      {uniformPrompt && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="uniform-rating-modal-title"
+        >
+          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-6 space-y-5">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 id="uniform-rating-modal-title" className="text-lg font-bold text-slate-900 leading-tight">
+                    Heads up!
+                  </h3>
+                  <p className="text-xs font-semibold text-amber-700 mt-0.5">
+                    Uniform Rating Detected across all indicators
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleDismissUniformModal}
+                aria-label="Close"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Verbatim Body Copy */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
+              <p className="text-sm text-slate-600 leading-relaxed">
+                It looks like you&apos;ve selected the same rating across all competencies. Each competency measures a distinct skill. To ensure your feedback is accurate and helpful for your team member&apos;s growth, please double-check that each rating reflects their individual performance in that specific area.
+              </p>
+            </div>
+
+            {/* Dynamic Assigned Score Highlight */}
+            <div className="bg-amber-50/70 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold text-amber-800">
+                Assigned Score for all 4 Competencies:
+              </span>
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-500 text-white text-xs font-bold shrink-0">
+                Rating {uniformPrompt.rating}
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleDismissUniformModal}
+                className="border-slate-200 text-slate-800 hover:bg-slate-50 font-semibold"
+              >
+                Review Ratings
+              </Button>
+              <Button
+                type="button"
+                onClick={handleContinueUniformModal}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold"
+              >
+                Continue Anyway
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

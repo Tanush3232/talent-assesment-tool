@@ -42,7 +42,7 @@ export default async function ReportsAnalyticsPage() {
 
   const enrichedEmployees = employees.map((emp) => ({
     ...emp,
-    managerName: managerMap[emp.managerId] || emp.managerEmail,
+    managerName: emp.managerName || managerMap[emp.managerId] || emp.managerEmail,
     assessment: emp.assessment
       ? {
           ...emp.assessment,
@@ -65,7 +65,9 @@ export default async function ReportsAnalyticsPage() {
   const enrichedCompleted = completedAssessments.map((a) => ({
     ...a,
     managerName:
-      managerMap[a.employee.managerId] || a.employee.managerEmail,
+      a.employee.managerName ||
+      managerMap[a.employee.managerId] ||
+      a.employee.managerEmail,
     scores: a.scores as any,
   }));
 

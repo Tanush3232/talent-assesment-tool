@@ -102,8 +102,10 @@ async function main() {
       impactLevel: "High",
       entity: "Adventz Corporate CoE",
       department: "Engineering & R&D",
+      function: "Technology" as string | null,
       location: "Bengaluru Outer Ring Road CoE",
       managerId: "MGR001",
+      managerName: "Sandeep Sharma",
       managerEmail: "sandeep.sharma@adventz.com",
     },
     {
@@ -114,8 +116,10 @@ async function main() {
       impactLevel: "Critical",
       entity: "Adventz Corporate CoE",
       department: "Product Management",
+      function: "Product",
       location: "Bengaluru Outer Ring Road CoE",
       managerId: "MGR003",
+      managerName: "Priya Krishnamurthy",
       managerEmail: "priya.krishnamurthy@adventz.com",
     },
     {
@@ -126,8 +130,10 @@ async function main() {
       impactLevel: "Medium",
       entity: "Zuari Industries Ltd",
       department: "Design Studio",
+      function: "Technology",
       location: "Mumbai BKC Head Office",
       managerId: "MGR002",
+      managerName: "Divya Nair",
       managerEmail: "divya.nair@adventz.com",
     },
     {
@@ -138,8 +144,10 @@ async function main() {
       impactLevel: "High",
       entity: "Adventz Corporate CoE",
       department: "Engineering & R&D",
+      function: "Technology",
       location: "Hyderabad HITEC City",
       managerId: "MGR001",
+      managerName: "Sandeep Sharma",
       managerEmail: "sandeep.sharma@adventz.com",
     },
     {
@@ -150,8 +158,10 @@ async function main() {
       impactLevel: "High",
       entity: "Zuari Industries Ltd",
       department: "Sales & Commercial",
+      function: "Commercial",
       location: "Pune EON IT Park",
       managerId: "MGR002",
+      managerName: "Divya Nair",
       managerEmail: "divya.nair@adventz.com",
     },
   ];
@@ -167,8 +177,10 @@ async function main() {
       impactLevel: "Medium",
       entity: "Adventz Corporate CoE",
       department: "Engineering & R&D",
+      function: "Technology" as string | null,
       location: "Bengaluru Outer Ring Road CoE",
       managerId: "MGR001",
+      managerName: "Sandeep Sharma",
       managerEmail: "sandeep.sharma@adventz.com",
     },
     {
@@ -179,8 +191,10 @@ async function main() {
       impactLevel: "Medium",
       entity: "Adventz Corporate CoE",
       department: "Engineering & R&D",
+      function: null,
       location: "Bengaluru Outer Ring Road CoE",
       managerId: "MGR001",
+      managerName: "Sandeep Sharma",
       managerEmail: "sandeep.sharma@adventz.com",
     }
   );

@@ -65,9 +65,9 @@ export const assessmentScoresSchema = z.object({
 
 export const assessmentDraftSchema = z.object({
   employeeId: z.string().min(1),
-  scores: assessmentScoresSchema.partial(),
-  evidence: z.record(z.string(), z.string()),
-  managerComments: z.string().optional(),
+  scores: assessmentScoresSchema.partial().optional(),
+  evidence: z.record(z.string(), z.string().nullish()).optional(),
+  managerComments: z.string().nullish(),
 });
 
 const ABILITY_INDICATORS = ["1.1", "1.2", "1.3", "1.4"];

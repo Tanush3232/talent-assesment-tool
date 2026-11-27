@@ -12,10 +12,14 @@ import {
   Text,
   View,
   Image,
+  Svg,
+  Path,
+  Line,
+  Circle,
   StyleSheet,
   Font,
 } from "@react-pdf/renderer";
-import { SUB_DIMENSIONS, RATING_SHORT_LABELS, COMPANY_NAME, APP_NAME, formatAssessmentCycle } from "@/lib/constants";
+import { SUB_DIMENSIONS, RATING_SHORT_LABELS, COMPANY_NAME, PDF_APP_NAME, formatAssessmentCycle, getClassificationTheme } from "@/lib/constants";
 import type { ExportEmployee } from "@/types/export-report";
 
 // Prevent mid-word hyphenation (e.g. "Flexibility" splitting as "Flexibili-ty")
@@ -61,17 +65,94 @@ const C = {
 } as const;
 
 // ── Classification helpers ────────────────────────────────────────────────────
-function classColors(category: string): { bg: string; text: string; border: string } {
-  if (category.includes("High Potential")) {
-    return { bg: C.BLUE_LIGHT,    text: C.BLUE,         border: C.BLUE_BORDER };
+export function classColors(category: string): { bg: string; text: string; border: string; dot: string } {
+  return getClassificationTheme(category).pdf;
+}
+
+function countLowScoreSubDimensions(scores: ExportEmployee["assessment"]["scores"]): number {
+  let count = 0;
+  for (const sec of ["ability", "aspiration", "leadership"] as const) {
+    const secScores = scores?.[sec];
+    if (!secScores) continue;
+    for (const val of Object.values(secScores)) {
+      if (typeof val === "number" && val >= 1 && val <= 2) count++;
+    }
   }
-  if (category.includes("Promotable")) {
-    return { bg: C.EMERALD_LIGHT, text: C.EMERALD_DARK, border: "#A7F3D0" };
-  }
-  if (category.includes("Well-placed")) {
-    return { bg: C.SLATE_100,     text: C.SLATE_700,    border: C.SLATE_300 };
-  }
-  return   { bg: C.AMBER_LIGHT,   text: C.AMBER,        border: "#FDE68A" };
+  return count;
+}
+
+function HiPoExceptionBadge({ marginLeft = 8 }: { marginLeft?: number }) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FEF3C7",
+        borderWidth: 1,
+        borderColor: "#FCD34D",
+        borderRadius: 99,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        marginLeft,
+      }}
+    >
+      <Svg width={10} height={10} viewBox="0 0 24 24" style={{ marginRight: 4 }}>
+        <Path
+          d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+          fill="#FEF3C7"
+          stroke="#B45309"
+          strokeWidth={2.2}
+        />
+        <Line x1={12} y1={9} x2={12} y2={13} stroke="#B45309" strokeWidth={2.2} />
+        <Circle cx={12} cy={17} r={1.2} fill="#B45309" />
+      </Svg>
+      <Text style={{ fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#B45309" }}>
+        HiPo Exception
+      </Text>
+    </View>
+  );
+}
+
+function HiPoExceptionBanner({ lowScoreCount }: { lowScoreCount: number }) {
+  const countLabel = lowScoreCount > 0 ? `${lowScoreCount} sub-dimensions` : "multiple sub-dimensions";
+  return (
+    <View
+      style={{
+        marginTop: 14,
+        backgroundColor: "#FEFCE8",
+        borderWidth: 1.2,
+        borderColor: "#FACC15",
+        borderRadius: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        flexDirection: "row",
+        alignItems: "flex-start",
+      }}
+    >
+      <Svg width={14} height={14} viewBox="0 0 24 24" style={{ marginRight: 8, marginTop: 1 }}>
+        <Path
+          d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+          fill="#FEF3C7"
+          stroke="#D97706"
+          strokeWidth={2.2}
+        />
+        <Line x1={12} y1={9} x2={12} y2={13} stroke="#D97706" strokeWidth={2.2} />
+        <Circle cx={12} cy={17} r={1.2} fill="#D97706" />
+      </Svg>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 9.5, fontFamily: "Helvetica-Bold", color: "#92400E", marginBottom: 3 }}>
+          HiPo Exception Detected
+        </Text>
+        <Text style={{ fontSize: 8.5, color: "#92400E", lineHeight: 1.45 }}>
+          Total score qualifies as{" "}
+          <Text style={{ fontFamily: "Helvetica-Bold" }}>High Potential (HiPo)</Text>, but{" "}
+          <Text style={{ fontFamily: "Helvetica-Bold" }}>{countLabel}</Text> are rated 1 or 2. Final
+          classification is downgraded to{" "}
+          <Text style={{ fontFamily: "Helvetica-Bold" }}>Promotable/Expandable.</Text>
+        </Text>
+      </View>
+    </View>
+  );
 }
 
 function getInitials(name: string): string {
@@ -499,7 +580,7 @@ function CoverPage({ employee, assessment }: { employee: ExportEmployee; assessm
           {COMPANY_NAME}
         </Text>
         <Text style={{ color: C.BLUE, fontSize: 15, fontFamily: "Helvetica-Bold" }}>
-          {APP_NAME}
+          {PDF_APP_NAME}
         </Text>
       </View>
 
@@ -580,15 +661,18 @@ function CoverPage({ employee, assessment }: { employee: ExportEmployee; assessm
 
         {/* Classification highlight */}
         <Text style={{ ...styles.infoLabel, marginBottom: 8 }}>Final Classification</Text>
-        <View style={{
-          ...styles.classPill,
-          backgroundColor: cls.bg,
-          borderColor: cls.border,
-        }}>
-          <Text style={{ ...styles.classPillText, color: cls.text }}>
-            {assessment.computedResult.classificationCategory}
-            {assessment.computedResult.isHiPoException ? "  ⚡ HiPo Exception" : ""}
-          </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+          <View style={{
+            ...styles.classPill,
+            backgroundColor: cls.bg,
+            borderColor: cls.border,
+            marginBottom: 0,
+          }}>
+            <Text style={{ ...styles.classPillText, color: cls.text }}>
+              {assessment.computedResult.classificationCategory}
+            </Text>
+          </View>
+          {assessment.computedResult.isHiPoException && <HiPoExceptionBadge />}
         </View>
 
         {/* Grand total score (matches classification color) */}
@@ -601,6 +685,10 @@ function CoverPage({ employee, assessment }: { employee: ExportEmployee; assessm
         <Text style={{ fontSize: 8, color: C.SLATE_500, marginTop: 2 }}>
           Grand Total Score  ·  Ability + Aspiration + Leadership
         </Text>
+
+        {assessment.computedResult.isHiPoException && (
+          <HiPoExceptionBanner lowScoreCount={countLowScoreSubDimensions(assessment.scores)} />
+        )}
       </View>
 
       {/* Cover page footer */}
@@ -648,7 +736,7 @@ export function EmployeeSummaryPage({ employee, assessment }: { employee: Export
     <Page size="A4" style={styles.page}>
       {/* Fixed header */}
       <View fixed style={styles.fixedHeader}>
-        <Text style={styles.fixedHeaderLeft}>{COMPANY_NAME} - {APP_NAME.toUpperCase()}  ·  {cycle}</Text>
+        <Text style={styles.fixedHeaderLeft}>{COMPANY_NAME} - {PDF_APP_NAME.toUpperCase()}  ·  {cycle}</Text>
         <Text style={styles.fixedHeaderRight}>{employee.name}</Text>
       </View>
 
@@ -714,12 +802,14 @@ export function EmployeeSummaryPage({ employee, assessment }: { employee: Export
 
       {/* 3. Potential Classification */}
       <Text style={{ ...styles.sectionSubtitle, marginTop: 8, marginBottom: 6 }}>Potential Classification</Text>
-      <View style={{ ...styles.classPill, backgroundColor: cls.bg, borderColor: cls.border, marginBottom: 6 }}>
-        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: cls.text, marginRight: 6 }} />
-        <Text style={{ ...styles.classPillText, color: cls.text }}>
-          {computedResult.classificationCategory}
-          {computedResult.isHiPoException ? "  (HiPo Exception)" : ""}
-        </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+        <View style={{ ...styles.classPill, backgroundColor: cls.bg, borderColor: cls.border, marginBottom: 0 }}>
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: cls.dot, marginRight: 6 }} />
+          <Text style={{ ...styles.classPillText, color: cls.text }}>
+            {computedResult.classificationCategory}
+          </Text>
+        </View>
+        {computedResult.isHiPoException && <HiPoExceptionBadge />}
       </View>
       {(() => {
         const activeKey = getActiveBandKey(computedResult.grandTotal, computedResult.isHiPoException);
@@ -847,7 +937,7 @@ export function EmployeeCompetencyPage({ employee, assessment }: { employee: Exp
     <Page size="A4" style={styles.page}>
       {/* Fixed header */}
       <View fixed style={styles.fixedHeader}>
-        <Text style={styles.fixedHeaderLeft}>{COMPANY_NAME} - {APP_NAME.toUpperCase()}  ·  {cycle}</Text>
+        <Text style={styles.fixedHeaderLeft}>{COMPANY_NAME} - {PDF_APP_NAME.toUpperCase()}  ·  {cycle}</Text>
         <Text style={styles.fixedHeaderRight}>{employee.name}</Text>
       </View>
 
@@ -948,9 +1038,9 @@ export function EmployeeAppraisalTemplate({
 
   return (
     <Document
-      title={`Talent Assessment Report — ${employee.name} — ${cycle}`}
+      title={`${PDF_APP_NAME} — ${employee.name} — ${cycle}`}
       author={employee.entity}
-      subject="Confidential Talent Assessment Report"
+      subject={`Confidential ${PDF_APP_NAME}`}
       creator="Talent Management Platform"
       producer="Talent Management Platform"
     >

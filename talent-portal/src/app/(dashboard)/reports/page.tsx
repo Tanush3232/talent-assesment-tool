@@ -40,7 +40,7 @@ export default async function ReportsPage() {
 
   const enrichedEmployees = employees.map((emp) => ({
     ...emp,
-    managerName: managerMap[emp.managerId] || emp.managerEmail,
+    managerName: emp.managerName || managerMap[emp.managerId] || emp.managerEmail,
     assessment: emp.assessment
       ? {
           ...emp.assessment,

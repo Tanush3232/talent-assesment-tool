@@ -14,6 +14,7 @@ type Employee = {
   email: string;
   designation: string;
   department: string;
+  function?: string | null;
   entity: string;
   location: string;
   managerId: string;
@@ -68,13 +69,11 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
   const [hrbpFilter, setHrbpFilter] = useState("ALL");
   const [rollupView, setRollupView] = useState<RollupView>("function");
 
-  // Derive unique filter options dynamically
-  const functions = useMemo(() => {
-    // Derive "function" from department (simplified mapping)
-    const deptToFn: Record<string, string> = {};
-    employees.forEach(e => { deptToFn[e.department] = e.department; });
-    return ["ALL", ...Array.from(new Set(employees.map(e => e.department)))];
-  }, [employees]);
+  // Derive unique filter options dynamically (Function is independent of Department; shows "—" if null/omitted)
+  const functions = useMemo(
+    () => ["ALL", ...Array.from(new Set(employees.map(e => e.function?.trim() || "—")))],
+    [employees]
+  );
 
   const departments = useMemo(() => ["ALL", ...Array.from(new Set(employees.map(e => e.department)))], [employees]);
   const managers = useMemo(() => ["ALL", ...Array.from(new Set(employees.map(e => e.managerName || e.managerEmail)))], [employees]);
@@ -85,8 +84,9 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
   const filtered = useMemo(() => {
     return employees.filter(emp => {
       const status = emp.assessment?.status || "PENDING";
+      const empFn = emp.function?.trim() || "—";
       if (statusFilter !== "ALL" && status !== statusFilter) return false;
-      if (fnFilter !== "ALL" && emp.department !== fnFilter) return false;
+      if (fnFilter !== "ALL" && empFn !== fnFilter) return false;
       if (deptFilter !== "ALL" && emp.department !== deptFilter) return false;
       if (managerFilter !== "ALL" && (emp.managerName || emp.managerEmail) !== managerFilter) return false;
       if (entityFilter !== "ALL" && emp.entity !== entityFilter) return false;
@@ -129,7 +129,7 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
     const groups: Record<string, { total: number; completed: number; hipos: number }> = {};
     employees.forEach(emp => {
       const key = rollupView === "function"
-        ? emp.department
+        ? (emp.function?.trim() || "—")
         : rollupView === "department"
           ? emp.department
           : rollupView === "entity"
@@ -255,7 +255,8 @@ export default function HRDirectoryClient({ employees }: { employees: Employee[]
                 <td className="px-4 py-3">
                   <button
                     onClick={() => {
-                      if (rollupView === "department" || rollupView === "function") setDeptFilter(row.name);
+                      if (rollupView === "function") setFnFilter(row.name);
+                      else if (rollupView === "department") setDeptFilter(row.name);
                       else if (rollupView === "entity") setEntityFilter(row.name);
                       else setManagerFilter(row.name);
                     }}

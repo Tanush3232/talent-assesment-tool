@@ -32,7 +32,7 @@ export default async function AdminPage() {
 
   const enrichedEmployees = employees.map(e => ({
     ...e,
-    managerName: managerMap[e.managerId] || e.managerEmail,
+    managerName: e.managerName || managerMap[e.managerId] || e.managerEmail,
   }));
 
   return (

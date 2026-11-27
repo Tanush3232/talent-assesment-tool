@@ -22,11 +22,13 @@ const employeeSchema = z.object({
   impactLevel: z.string().min(1, "Impact Level is required"),
   entity: z.string().min(1, "Entity is required"),
   managerId: z.string().min(1, "Manager ID is required"),
+  managerName: z.string().min(1, "Manager Name is required"),
   managerEmail: z
     .string()
     .email("Invalid manager email")
     .refine(isAllowedEmailDomain, `Allowed domains: ${ALLOWED_DOMAINS_LABEL}`),
   department: z.string().min(1, "Department is required"),
+  function: z.string().optional(),
   location: z.string().min(1, "Location is required"),
   hrbpName: z.string().optional(),
 });
@@ -47,8 +49,10 @@ export default function AddEmployeeDialog({ employee, onClose }: { employee?: an
       impactLevel: employee?.impactLevel ?? "",
       entity: employee?.entity ?? "",
       managerId: employee?.managerId ?? "",
+      managerName: employee?.managerName ?? "",
       managerEmail: employee?.managerEmail ?? "",
       department: employee?.department ?? "",
+      function: employee?.function ?? "",
       location: employee?.location ?? "",
       hrbpName: employee?.hrbpName ?? "",
     },
@@ -124,21 +128,33 @@ export default function AddEmployeeDialog({ employee, onClose }: { employee?: an
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Manager ID</label>
+              <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Manager ID *</label>
               <input {...form.register("managerId")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="MGR001" />
               {form.formState.errors.managerId && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.managerId.message}</p>}
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Manager Email</label>
-              <input {...form.register("managerEmail")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="sandeep.sharma@zuari.com" />
+              <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Manager Name *</label>
+              <input {...form.register("managerName")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Sandeep Sharma" />
+              {form.formState.errors.managerName && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.managerName.message}</p>}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Manager Email *</label>
+              <input {...form.register("managerEmail")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="sandeep.sharma@adventz.com" />
               {form.formState.errors.managerEmail && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.managerEmail.message}</p>}
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Department</label>
+              <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Department *</label>
               <input {...form.register("department")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Engineering & R&D" />
               {form.formState.errors.department && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.department.message}</p>}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Function</label>
+              <input {...form.register("function")} className="w-full h-9 px-3 border border-slate-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Technology (optional)" />
+              {form.formState.errors.function && <p className="text-xs text-zuari-red mt-1">{form.formState.errors.function.message}</p>}
             </div>
 
             <div className="space-y-1">

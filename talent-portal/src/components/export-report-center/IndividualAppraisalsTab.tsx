@@ -18,14 +18,11 @@ import {
   resolveZipEntity,
 } from "@/lib/pdf/fileNaming";
 import { EmployeeAppraisalTemplate } from "@/lib/pdf/templates/EmployeeAppraisalTemplate";
+import { getClassificationTheme } from "@/lib/constants";
 
 // ── Classification chip styling ───────────────────────────────────────────────
 function classChip(category: string) {
-  if (category.includes("High Potential"))
-    return "bg-blue-50 text-blue-700 border-blue-200";
-  if (category.includes("Promotable"))
-    return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  return "bg-slate-100 text-slate-600 border-slate-200";
+  return getClassificationTheme(category).ui.pill;
 }
 
 function scoreDisplay(grandTotal: number): string {
@@ -85,9 +82,15 @@ function EmployeeRow({
       {/* Score Rating */}
       <td className="px-4 py-3">
         <div className="font-bold text-slate-900 text-[13px]">{scoreDisplay(computedResult.grandTotal)}</div>
-        <div className={`mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${chip}`}>
-          {computedResult.classificationCategory.split("(")[0].trim()}
-          {computedResult.isHiPoException ? " ⚡" : ""}
+        <div className="mt-1 flex items-center flex-wrap gap-1.5">
+          <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${chip}`}>
+            {computedResult.classificationCategory.split("(")[0].trim()}
+          </div>
+          {computedResult.isHiPoException && (
+            <span className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+              HiPo Exception
+            </span>
+          )}
         </div>
       </td>
     </tr>

@@ -83,6 +83,7 @@ export default function AdminPageClient({ users, employees }: { users: any[]; em
           !(emp.managerName || "").toLowerCase().includes(q) &&
           !emp.managerId.toLowerCase().includes(q) &&
           !emp.department.toLowerCase().includes(q) &&
+          !(emp.function || "").toLowerCase().includes(q) &&
           !emp.location.toLowerCase().includes(q) &&
           !(emp.hrbpName || "").toLowerCase().includes(q)
         ) return false;
@@ -170,7 +171,7 @@ export default function AdminPageClient({ users, employees }: { users: any[]; em
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/60">
-                    {["EMP ID", "Employee Name", "Employee Email", "Designation", "Impact Level", "Employee Entity", "Manager Name", "Manager ID", "Manager Email", "Location", "Department", "HRBP", "Actions"].map(h => (
+                    {["EMP ID", "Employee Name", "Employee Email", "Designation", "Impact Level", "Employee Entity", "Manager Name", "Manager ID", "Manager Email", "Location", "Department", "Function", "HRBP", "Actions"].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -178,7 +179,7 @@ export default function AdminPageClient({ users, employees }: { users: any[]; em
                 <tbody className="divide-y divide-slate-100">
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={13} className="text-center py-16 text-slate-400 text-sm">No employees match your filters.</td>
+                      <td colSpan={14} className="text-center py-16 text-slate-400 text-sm">No employees match your filters.</td>
                     </tr>
                   ) : filtered.map((emp: any) => (
                     <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -197,6 +198,7 @@ export default function AdminPageClient({ users, employees }: { users: any[]; em
                       <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{emp.managerEmail}</td>
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{emp.location}</td>
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{emp.department}</td>
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{emp.function || <span className="text-slate-400 italic text-xs">null</span>}</td>
                       <td className="px-4 py-3 font-semibold text-zuari-blue whitespace-nowrap">{emp.hrbpName || <span className="text-slate-300 italic text-xs">—</span>}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <RowActions

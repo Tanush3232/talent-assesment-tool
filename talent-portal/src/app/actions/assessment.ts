@@ -10,13 +10,32 @@ import { revalidatePath } from "next/cache";
 export async function saveAssessmentDraft(employeeId: string, data: any) {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
-  
+
+  // Never overwrite a completed assessment with a late/stale draft save
+  const existing = await prisma.assessment.findUnique({
+    where: { employeeId },
+    select: { status: true },
+  });
+  if (existing?.status === AssessmentStatus.COMPLETED) {
+    return { success: true };
+  }
+
+  // Strip null/undefined values so partial drafts validate cleanly
+  const cleanEvidence: Record<string, string> = Object.fromEntries(
+    Object.entries(data?.evidence || {}).filter((entry): entry is [string, string] => typeof entry[1] === "string")
+  );
+
   // Validate data against Zod schema (Partial because it's a draft)
-  const parsed = assessmentDraftSchema.safeParse({ ...data, employeeId });
+  const parsed = assessmentDraftSchema.safeParse({
+    ...data,
+    employeeId,
+    evidence: cleanEvidence,
+    managerComments: typeof data?.managerComments === "string" ? data.managerComments : "",
+  });
   if (!parsed.success) {
     throw new Error("Invalid data format");
   }
-  
+
   const validatedData = parsed.data;
 
   await prisma.assessment.upsert({
@@ -26,18 +45,22 @@ export async function saveAssessmentDraft(employeeId: string, data: any) {
       cycle: "FY2026",
       status: AssessmentStatus.DRAFT,
       scores: validatedData.scores || {},
-      evidence: validatedData.evidence || {},
+      evidence: cleanEvidence,
       managerComments: validatedData.managerComments || "",
       createdBy: session.user.id,
       updatedBy: session.user.id,
     },
     update: {
+      status: AssessmentStatus.DRAFT,
       scores: validatedData.scores || {},
-      evidence: validatedData.evidence || {},
+      evidence: cleanEvidence,
       managerComments: validatedData.managerComments || "",
       updatedBy: session.user.id,
     }
   });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
 
   return { success: true };
 }

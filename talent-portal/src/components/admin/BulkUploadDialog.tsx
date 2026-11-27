@@ -8,7 +8,6 @@ import { bulkUploadEmployees } from "@/app/actions/employee";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ALLOWED_DOMAINS_LABEL, isAllowedEmailDomain } from "@/lib/constants";
 
@@ -21,9 +20,11 @@ type ParsedEmployee = {
   impactLevel: string;
   entity: string;
   managerId: string;
+  managerName: string;
   managerEmail: string;
   location: string;
   department: string;
+  function: string;
   hrbpName: string;
   errors: string[];
 };
@@ -37,9 +38,11 @@ const COLUMNS: { header: string; field: keyof ParsedEmployee; required: boolean;
   { header: "Impact Level", field: "impactLevel", required: true, hint: "Critical, High, Medium or Low" },
   { header: "Employee Entity", field: "entity", required: true, hint: "e.g. Zuari Industries Ltd" },
   { header: "Manager ID", field: "managerId", required: true, hint: "Manager's ID, e.g. MGR001" },
+  { header: "Manager Name", field: "managerName", required: true, hint: "Line manager's full name, e.g. Sandeep Sharma" },
   { header: "Manager Email", field: "managerEmail", required: true, hint: "Must match the manager's portal login email - this controls whose dashboard the employee appears on" },
   { header: "Location", field: "location", required: true, hint: "e.g. Bengaluru Outer Ring Road CoE" },
   { header: "Department", field: "department", required: true, hint: "e.g. Engineering & R&D" },
+  { header: "Function", field: "function", required: false, hint: "Optional business function, e.g. Technology (shows '-' if omitted)" },
   { header: "HRBP Name", field: "hrbpName", required: false, hint: "Optional" },
 ];
 
@@ -87,7 +90,7 @@ export default function BulkUploadDialog() {
       sheet.addRow(COLUMNS.map((c) => c.header));
       sheet.addRow([
         "EMP015", "John Doe", "john.doe@adventz.com", "Senior Developer", "High",
-        "Zuari Industries Ltd", "MGR001", "sandeep.sharma@adventz.com", "Bengaluru Outer Ring Road CoE", "Engineering & R&D", "Amit Kumar",
+        "Zuari Industries Ltd", "MGR001", "Sandeep Sharma", "sandeep.sharma@adventz.com", "Bengaluru Outer Ring Road CoE", "Engineering & R&D", "Technology", "Amit Kumar",
       ]);
       sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
       sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3A8A" } };
@@ -248,7 +251,7 @@ export default function BulkUploadDialog() {
     <Dialog open={open} onOpenChange={(val) => (!val ? handleClose() : setOpen(true))}>
       <DialogTrigger render={<Button className="bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white shadow-sm transition-all"><UploadCloud className="w-4 h-4 mr-2" /> Bulk Upload</Button>} />
 
-      <DialogContent className="sm:max-w-[900px] p-0 overflow-hidden bg-white border-0 shadow-2xl">
+      <DialogContent className={cn("p-0 overflow-hidden bg-white border-0 shadow-2xl", parsedData ? "sm:max-w-[95vw] max-w-[1250px]" : "sm:max-w-[900px]")}>
         <div className="bg-[#1e3a8a] p-6 text-white flex flex-row items-center gap-4">
           <div className="p-3 bg-white/10 rounded-xl">
             <TableIcon className="w-6 h-6 text-white" />
@@ -259,7 +262,7 @@ export default function BulkUploadDialog() {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 min-w-0">
           {!parsedData ? (
             <div className="space-y-5">
               <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
@@ -275,7 +278,7 @@ export default function BulkUploadDialog() {
               <div className="flex gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-slate-700">
                 <Info className="w-4 h-4 text-[#1e3a8a] shrink-0 mt-0.5" />
                 <ul className="space-y-1 list-disc list-inside marker:text-slate-400">
-                  <li>One employee per row. Keep the header row exactly as in the template; all columns except <strong>HRBP Name</strong> are required.</li>
+                  <li>One employee per row. Keep the header row exactly as in the template; all columns except <strong>Function</strong> and <strong>HRBP Name</strong> are required.</li>
                   <li>A <strong>new Emp ID is appended</strong>; an <strong>existing Emp ID only updates changed fields</strong> (replacing <code>-</code> placeholders when real values are provided, while preserving existing data &amp; assessments).</li>
                   <li><strong>Allowed Email Domains:</strong> {ALLOWED_DOMAINS_LABEL}.</li>
                   <li><strong>Manager Email</strong> must match the manager&apos;s login email, otherwise the employee won&apos;t appear on their dashboard.</li>
@@ -314,7 +317,7 @@ export default function BulkUploadDialog() {
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 min-w-0">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">Data Preview</h3>
@@ -332,16 +335,19 @@ export default function BulkUploadDialog() {
                 </Button>
               </div>
 
-              <ScrollArea className="h-[400px] border border-slate-200 rounded-xl overflow-hidden shadow-inner bg-slate-50">
-                <Table>
+              <div className="h-[400px] w-full max-w-full border border-slate-200 rounded-xl overflow-auto shadow-inner bg-slate-50 [&_[data-slot=table-container]]:overflow-visible">
+                <Table className="min-w-max">
                   <TableHeader className="bg-slate-100 sticky top-0 z-10 shadow-sm">
                     <TableRow className="hover:bg-slate-100 border-b-slate-200">
-                      <TableHead className="font-semibold text-slate-700 w-[60px]">Row</TableHead>
-                      <TableHead className="font-semibold text-slate-700 w-[100px]">Emp ID</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Name</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Email</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Role &amp; Dept</TableHead>
-                      <TableHead className="font-semibold text-slate-700 text-right">Status</TableHead>
+                      <TableHead className="font-semibold text-slate-700 w-[60px] whitespace-nowrap">Row</TableHead>
+                      {COLUMNS.map((col) => (
+                        <TableHead key={col.field} className="font-semibold text-slate-700 whitespace-nowrap">
+                          {col.header}
+                        </TableHead>
+                      ))}
+                      <TableHead className="font-semibold text-slate-700 text-right whitespace-nowrap sticky right-0 bg-slate-100 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.08)]">
+                        Status
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -349,21 +355,37 @@ export default function BulkUploadDialog() {
                       const isInvalid = row.errors.length > 0;
                       return (
                         <TableRow key={row.rowNumber} className={cn("border-b-slate-100", isInvalid ? "bg-red-50 hover:bg-red-50" : "bg-white hover:bg-slate-50")}>
-                          <TableCell className="text-xs text-slate-400">{row.rowNumber}</TableCell>
-                          <TableCell className="font-mono text-xs">{row.id || <span className="text-[#e11d48] font-bold">MISSING</span>}</TableCell>
-                          <TableCell className="font-medium text-slate-900">{row.name || <span className="text-[#e11d48] font-bold">MISSING</span>}</TableCell>
-                          <TableCell className="text-slate-600">{row.email || <span className="text-[#e11d48] font-bold">MISSING</span>}</TableCell>
-                          <TableCell className="text-slate-600">
-                            <div>{row.designation || <span className="text-[#e11d48] font-bold">MISSING</span>}</div>
-                            <div className="text-xs text-slate-400">{row.department || <span className="text-[#e11d48] font-bold">MISSING</span>}</div>
-                          </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-xs text-slate-400 whitespace-nowrap">{row.rowNumber}</TableCell>
+                          {COLUMNS.map((col) => {
+                            const val = row[col.field] as string;
+                            return (
+                              <TableCell
+                                key={col.field}
+                                className={cn(
+                                  "whitespace-nowrap text-slate-600",
+                                  col.field === "id" && "font-mono text-xs",
+                                  col.field === "name" && "font-medium text-slate-900"
+                                )}
+                              >
+                                {val && val !== "-" ? (
+                                  val
+                                ) : col.required ? (
+                                  <span className="text-[#e11d48] font-bold">MISSING</span>
+                                ) : col.field === "function" ? (
+                                  <span className="text-slate-400 italic text-xs">null</span>
+                                ) : (
+                                  <span className="text-slate-300">—</span>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className={cn("text-right whitespace-nowrap sticky right-0 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.08)]", isInvalid ? "bg-red-50" : "bg-white")}>
                             {isInvalid ? (
                               <div className="flex flex-col items-end gap-1">
                                 <div className="flex items-center text-[#e11d48] text-xs font-bold bg-[#e11d48]/10 px-2 py-1 rounded-full border border-[#e11d48]/20">
                                   <AlertCircle className="w-3 h-3 mr-1" /> Invalid
                                 </div>
-                                <div className="text-[10px] text-[#e11d48] max-w-[220px] leading-tight font-medium whitespace-normal">
+                                <div className="text-[10px] text-[#e11d48] max-w-[240px] leading-tight font-medium whitespace-normal">
                                   {row.errors.join(", ")}
                                 </div>
                               </div>
@@ -378,7 +400,7 @@ export default function BulkUploadDialog() {
                     })}
                   </TableBody>
                 </Table>
-              </ScrollArea>
+              </div>
 
               <DialogFooter className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
                 <Button type="button" variant="ghost" onClick={handleClose} disabled={isSubmitting} className="text-slate-500 hover:text-slate-900">

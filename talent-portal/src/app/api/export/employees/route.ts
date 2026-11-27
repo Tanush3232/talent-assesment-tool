@@ -54,7 +54,7 @@ export async function GET() {
       entity: a.employee.entity,
       location: a.employee.location,
       managerId: a.employee.managerId,
-      managerName: managerMap[a.employee.managerId] || a.employee.managerEmail,
+      managerName: a.employee.managerName || managerMap[a.employee.managerId] || a.employee.managerEmail,
       managerEmail: a.employee.managerEmail,
       hrbpName: a.employee.hrbpName,
       impactLevel: a.employee.impactLevel,

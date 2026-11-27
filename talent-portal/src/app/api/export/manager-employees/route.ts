@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       entity: a.employee.entity,
       location: a.employee.location,
       managerId: a.employee.managerId,
-      managerName: managerName || a.employee.managerEmail,
+      managerName: a.employee.managerName || managerName || a.employee.managerEmail,
       managerEmail: a.employee.managerEmail,
       hrbpName: a.employee.hrbpName,
       impactLevel: a.employee.impactLevel,

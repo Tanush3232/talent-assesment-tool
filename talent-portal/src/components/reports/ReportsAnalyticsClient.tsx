@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef } from "react";
 import { ChevronDown, FileSpreadsheet, Loader2 } from "lucide-react";
 import { computeFullAssessmentResult } from "@/lib/scoring";
-import { DEPARTMENT_TO_FUNCTION, SUB_DIMENSIONS, formatAssessmentCycle } from "@/lib/constants";
+import { SUB_DIMENSIONS, formatAssessmentCycle, getClassificationTheme } from "@/lib/constants";
 
 const ALL_SUB_DIMS = [
   ...SUB_DIMENSIONS.ability,
@@ -26,6 +26,7 @@ type Employee = {
   email: string;
   designation: string;
   department: string;
+  function?: string | null;
   entity: string;
   location: string;
   managerId: string;
@@ -84,8 +85,8 @@ function avatarColor(name: string) {
   return colors[name.charCodeAt(0) % colors.length];
 }
 
-function getFn(department: string): string {
-  return (DEPARTMENT_TO_FUNCTION as Record<string, string>)[department] || department;
+function getFn(emp: Employee): string {
+  return emp.function?.trim() || "—";
 }
 
 function computeEmpResult(emp: Employee) {
@@ -142,7 +143,7 @@ function cascade(
   // Step 2 — location
   const afterL =
     newLoc === "ALL" ? afterM : afterM.filter((e) => e.location === newLoc);
-  const fnsSet = Array.from(new Set(afterL.map((e) => getFn(e.department))));
+  const fnsSet = Array.from(new Set(afterL.map((e) => getFn(e))));
   const newFn =
     fn !== "ALL" && fnsSet.includes(fn)
       ? fn
@@ -154,7 +155,7 @@ function cascade(
   const afterF =
     newFn === "ALL"
       ? afterL
-      : afterL.filter((e) => getFn(e.department) === newFn);
+      : afterL.filter((e) => getFn(e) === newFn);
   const deptsSet = Array.from(new Set(afterF.map((e) => e.department)));
   const newDept =
     dept !== "ALL" && deptsSet.includes(dept)
@@ -251,18 +252,10 @@ function GroupingPill({ category }: { category: string | null }) {
   if (!category || category === "Pending Rating" || category === "Pending") {
     return <span className="text-xs text-slate-400 italic">—</span>;
   }
-  const styles: Record<string, string> = {
-    "High Potential (HiPo)":
-      "bg-violet-50 text-violet-700 border-violet-200",
-    "Promotable/Expandable":
-      "bg-orange-50 text-orange-700 border-orange-200",
-    "Well-placed": "bg-slate-100 text-slate-600 border-slate-200",
-  };
+  const { ui } = getClassificationTheme(category);
   return (
     <span
-      className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold border ${
-        styles[category] ?? "bg-slate-100 text-slate-600 border-slate-200"
-      }`}
+      className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold border ${ui.pill}`}
     >
       {category}
     </span>
@@ -392,10 +385,14 @@ function EnhancedExport({ data }: { data: any[] }) {
         }
 
         const classCell = row.getCell("classification");
-        if (displayCat === "High Potential (HiPo)") {
-          classCell.font = { bold: true, color: { argb: "FF4C1D95" } };
-        } else if (displayCat === "Promotable/Expandable") {
-          classCell.font = { bold: true, color: { argb: "FF166534" } };
+        if (displayCat && displayCat !== "Pending Rating") {
+          const { excel } = getClassificationTheme(displayCat);
+          classCell.font = { bold: true, color: { argb: excel.fontArgb } };
+          classCell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: excel.fillArgb },
+          };
         }
 
         const exCell = row.getCell("hipoException");
@@ -505,7 +502,7 @@ export default function ReportsAnalyticsClient({
   const validFunctions = useMemo(
     () => [
       "ALL",
-      ...Array.from(new Set(afterLocation.map((e) => getFn(e.department)))),
+      ...Array.from(new Set(afterLocation.map((e) => getFn(e)))),
     ],
     [afterLocation]
   );
@@ -514,7 +511,7 @@ export default function ReportsAnalyticsClient({
     () =>
       functionFilter === "ALL"
         ? afterLocation
-        : afterLocation.filter((e) => getFn(e.department) === functionFilter),
+        : afterLocation.filter((e) => getFn(e) === functionFilter),
     [afterLocation, functionFilter]
   );
 
@@ -688,15 +685,8 @@ export default function ReportsAnalyticsClient({
           <div className="flex items-start gap-8">
             {/* Card title */}
             <div className="flex-shrink-0 min-w-[180px]">
-              <p className="text-[10px] font-extrabold tracking-widest uppercase text-slate-400 mb-1">
-                Succession Analytics
-              </p>
               <h2 className="font-bold text-slate-900 text-[15px] leading-snug">
                 Talent Potential Distribution
-                <br />
-                <span className="text-slate-500 font-semibold text-sm">
-                  GCC Bar Chart
-                </span>
               </h2>
             </div>
 
@@ -761,19 +751,19 @@ export default function ReportsAnalyticsClient({
               label: "High Potential (HiPo)",
               count: distribution.hipo,
               percentage: hipoPct,
-              barClass: "bg-violet-500",
+              barClass: getClassificationTheme("High Potential").ui.bar,
             },
             {
               label: "Promotable / Expandable",
               count: distribution.promotable,
               percentage: proPct,
-              barClass: "bg-emerald-500",
+              barClass: getClassificationTheme("Promotable").ui.bar,
             },
             {
               label: "Well-placed",
               count: distribution.wellPlaced,
               percentage: wpPct,
-              barClass: "bg-slate-400",
+              barClass: getClassificationTheme("Well-placed").ui.bar,
             },
           ].map((row) => (
             <div
@@ -836,18 +826,25 @@ export default function ReportsAnalyticsClient({
           <p className="text-[11px] text-slate-400 max-w-md leading-relaxed">
             This horizontal bar chart lists potential categories along the
             Y-axis. The bar widths represent the relative density of employee
-            allocations, updating dynamically as you modify reporting
-            hierarchies or regional GCC cohorts.
+            allocations.
           </p>
           <div className="flex items-center gap-3 flex-shrink-0">
-            <span className="flex items-center gap-1.5 text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 px-3 py-1.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block" />
-              HiPo Ratio: {hipoPct.toFixed(1)}%
-            </span>
-            <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-              Promotable: {proPct.toFixed(1)}%
-            </span>
+            {(() => {
+              const hipoUi = getClassificationTheme("High Potential").ui;
+              const proUi = getClassificationTheme("Promotable").ui;
+              return (
+                <>
+                  <span className={`flex items-center gap-1.5 text-[11px] font-bold border px-3 py-1.5 rounded-full ${hipoUi.pill}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${hipoUi.dot} inline-block`} />
+                    HiPo Ratio: {hipoPct.toFixed(1)}%
+                  </span>
+                  <span className={`flex items-center gap-1.5 text-[11px] font-bold border px-3 py-1.5 rounded-full ${proUi.pill}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${proUi.dot} inline-block`} />
+                    Promotable: {proPct.toFixed(1)}%
+                  </span>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -860,9 +857,6 @@ export default function ReportsAnalyticsClient({
             <h2 className="font-bold text-slate-900 text-base">
               Talent Potential Registry Database
             </h2>
-            <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mt-0.5">
-              Live read access covering all operational units
-            </p>
           </div>
 
           {/* Category filter */}

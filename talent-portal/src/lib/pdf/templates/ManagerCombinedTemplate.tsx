@@ -14,11 +14,12 @@ import {
   Image,
   StyleSheet,
 } from "@react-pdf/renderer";
-import { COMPANY_NAME, APP_NAME } from "@/lib/constants";
+import { COMPANY_NAME, PDF_APP_NAME } from "@/lib/constants";
 import type { ExportEmployee, ExportManager } from "@/types/export-report";
 import {
   EmployeeSummaryPage,
   EmployeeCompetencyPage,
+  classColors,
   getLogoSrc,
 } from "@/lib/pdf/templates/EmployeeAppraisalTemplate";
 
@@ -42,12 +43,6 @@ const C = {
 } as const;
 
 const PAGE_H_PAD = 40;
-
-function classColors(category: string) {
-  if (category.includes("High Potential")) return { bg: C.BLUE_LIGHT, text: C.BLUE, border: C.BLUE_BORDER };
-  if (category.includes("Promotable"))    return { bg: C.EMERALD_LIGHT, text: C.EMERALD_DARK, border: "#A7F3D0" };
-  return                                         { bg: C.SLATE_100, text: C.SLATE_700, border: C.SLATE_300 };
-}
 
 function getInitials(name: string): string {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -107,7 +102,7 @@ function ManagerCoverPage({
           {COMPANY_NAME}
         </Text>
         <Text style={{ color: C.BLUE, fontSize: 15, fontFamily: "Helvetica-Bold" }}>
-          {APP_NAME}
+          {PDF_APP_NAME}
         </Text>
       </View>
 
@@ -189,6 +184,16 @@ function ManagerCoverPage({
                     {computedResult.classificationCategory}
                   </Text>
                 </View>
+                {computedResult.isHiPoException && (
+                  <View style={{
+                    backgroundColor: "#FEF3C7", borderWidth: 1, borderColor: "#FCD34D",
+                    borderRadius: 3, paddingHorizontal: 5, paddingVertical: 1.5, marginTop: 2,
+                  }}>
+                    <Text style={{ fontSize: 6.5, fontFamily: "Helvetica-Bold", color: "#B45309" }}>
+                      HiPo Exception
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           );

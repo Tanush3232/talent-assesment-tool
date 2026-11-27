@@ -50,6 +50,20 @@ export function calculateSectionScore(
   return { sum: total, counted, totalInSchema: indicators.length };
 }
 
+/**
+ * Returns the shared integer rating (1–4) if every indicator in the section
+ * has a valid rating and all ratings are identical; otherwise null.
+ */
+export function getUniformSectionRating(
+  section: SectionKey,
+  scoresObj: Partial<ScoresMap>
+): number | null {
+  const indicators = SECTION_INDICATORS[section];
+  const values = indicators.map((id) => scoresObj[section]?.[id]);
+  if (values.some((v) => typeof v !== "number" || v < 1 || v > 4)) return null;
+  return values.every((v) => v === values[0]) ? (values[0] as number) : null;
+}
+
 export function getLowScoresCount(scores: Partial<ScoresMap>): number {
   return getLowScoreDetails(scores).length;
 }
